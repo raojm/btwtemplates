@@ -14,7 +14,7 @@ OUTPUT_DIR="$REPO_DIR/releases"
 INDEX_PATH="$REPO_DIR/template-index.json"
 VERSIONS_PATH="$REPO_DIR/versions.json"
 
-REPO="${GITHUB_REPOSITORY:-ByteWorld/btwtemplates}"
+REPO="${GITHUB_REPOSITORY:-raojm/btwtemplates}"
 
 mkdir -p "$OUTPUT_DIR"
 
