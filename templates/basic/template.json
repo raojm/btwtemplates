@@ -1,0 +1,8 @@
+{
+	"name": "Basic ECS",
+	"description": "基础 ECS 架构，包含登录/移动/输入处理/视图同步",
+	"author": "ByteWorld",
+	"version": "1.0",
+	"tags": ["basic", "ecs"],
+	"variables": ["PROJECT_NAME", "GAME_ID", "ZIGSCRIPT_PATH", "GODOT_VERSION", "RENDERING_METHOD", "VIEWPORT_WIDTH", "VIEWPORT_HEIGHT"]
+}

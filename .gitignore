@@ -1,0 +1,6 @@
+# 打包产物（CI 自动生成）
+releases/
+
+# OS 文件
+.DS_Store
+Thumbs.db

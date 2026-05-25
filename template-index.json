@@ -1,0 +1,20 @@
+{
+	"version": 1,
+	"updated": "2026-05-25",
+	"templates": [
+		{
+			"id": "basic",
+			"name": "Basic ECS",
+			"description": "基础 ECS 架构，包含登录/移动/输入处理/视图同步",
+			"author": "ByteWorld",
+			"version": "1.0.0",
+			"min_engine_version": "4.6",
+			"tags": [
+				"basic",
+				"ecs"
+			],
+			"download_url": "https://github.com/ByteWorld/btwtemplates/releases/download/basic-v1.0.0/basic.zip",
+			"checksum": "534518d72ca9000d15199ac77ed6e2e102657d28c444cce303be36853abe0c3f"
+		}
+	]
+}

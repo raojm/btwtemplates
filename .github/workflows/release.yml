@@ -1,0 +1,116 @@
+name: Pack & Release Templates
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'versions.json'        # 版本号变更时触发
+      - 'templates/**'         # 模板文件变更时触发
+  workflow_dispatch:           # 允许手动触发
+
+permissions:
+  contents: write              # 需要写权限来 commit 和创建 release
+
+jobs:
+  pack-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2       # 需要上一个 commit 来比较 versions.json
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y jq zip
+
+      - name: Detect version changes
+        id: versions
+        run: |
+          CHANGED_TEMPLATES=""
+
+          CURRENT=$(cat versions.json)
+          PREVIOUS=$(git show HEAD~1:versions.json 2>/dev/null || echo "{}")
+
+          echo "Current versions: $CURRENT"
+          echo "Previous versions: $PREVIOUS"
+
+          # 检查每个模板的版本是否变更
+          for ID in $(echo "$CURRENT" | jq -r 'keys[]'); do
+            CUR_VER=$(echo "$CURRENT" | jq -r ".$ID")
+            PREV_VER=$(echo "$PREVIOUS" | jq -r ".$ID // empty")
+
+            if [ "$CUR_VER" != "$PREV_VER" ]; then
+              echo "  $ID: $PREV_VER → $CUR_VER (CHANGED)"
+              CHANGED_TEMPLATES="$CHANGED_TEMPLATES $ID"
+            else
+              echo "  $ID: $CUR_VER (unchanged)"
+            fi
+          done
+
+          echo "changed_templates=$CHANGED_TEMPLATES" >> $GITHUB_OUTPUT
+
+          if [ -n "$CHANGED_TEMPLATES" ]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Pack templates
+        run: |
+          bash scripts/pack.sh
+
+      - name: List outputs
+        run: |
+          echo "=== Releases ==="
+          ls -la releases/
+          echo ""
+          echo "=== template-index.json ==="
+          cat template-index.json
+
+      - name: Create GitHub Releases
+        if: steps.versions.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CHANGED: ${{ steps.versions.outputs.changed_templates }}
+        run: |
+          # 为每个变更的模板创建独立 Release
+          # tag 格式: {template_id}-v{version}，避免多模板版本号冲突
+          for ITEM in $CHANGED; do
+            VERSION=$(jq -r ".$ITEM" versions.json)
+            TAG="${ITEM}-v${VERSION}"
+            ZIP="releases/${ITEM}.zip"
+
+            if [ ! -f "$ZIP" ]; then
+              echo "⚠ $ZIP not found, skipping"
+              continue
+            fi
+
+            echo "Creating release: $TAG for template: $ITEM"
+
+            if gh release view "$TAG" >/dev/null 2>&1; then
+              echo "  Release $TAG already exists, uploading asset..."
+              gh release upload "$TAG" "$ZIP" --clobber
+            else
+              echo "  Creating new release $TAG..."
+              gh release create "$TAG" "$ZIP" \
+                --title "$ITEM v$VERSION" \
+                --notes "Automated release for template **$ITEM** version **$VERSION**"
+            fi
+
+            echo "  ✓ Released: https://github.com/${{ github.repository }}/releases/tag/$TAG"
+          done
+
+      - name: Commit updated template-index.json
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add template-index.json
+
+          if git diff --cached --quiet; then
+            echo "No changes to template-index.json"
+          else
+            git commit -m "chore: update template-index.json [skip ci]"
+            git push
+          fi
