@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 2       # 需要上一个 commit 来比较 versions.json
 
@@ -95,7 +95,8 @@ jobs:
               echo "  Creating new release $TAG..."
               gh release create "$TAG" "$ZIP" \
                 --title "$ITEM v$VERSION" \
-                --notes "Automated release for template **$ITEM** version **$VERSION**"
+                --notes "Automated release for template **$ITEM** version **$VERSION**" \
+                --exclude-source
             fi
 
             echo "  ✓ Released: https://github.com/${{ github.repository }}/releases/tag/$TAG"
