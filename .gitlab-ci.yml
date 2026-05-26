@@ -125,7 +125,7 @@ create-release:
               \"links\": [
                 {
                   \"name\": \"${ITEM}.zip\",
-                  \"url\": \"${CI_PROJECT_URL}/-/packages/generic/btwtemplates/${TAG}/${ITEM}.zip\",
+                  \"url\": \"${CI_SERVER_URL}/-/packages/generic/btwtemplates/${TAG}/${ITEM}.zip\",
                   \"link_type\": \"package\"
                 }
               ]
@@ -134,7 +134,7 @@ create-release:
           "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases")
 
         if [ "$STATUS_CODE" -eq 201 ]; then
-          echo "  ✓ Release created: ${CI_PROJECT_URL}/-/releases/${TAG}"
+          echo "  ✓ Release created: ${CI_SERVER_URL}/-/releases/${TAG}"
         elif [ "$STATUS_CODE" -eq 409 ]; then
           echo "  Release $TAG already exists, updating..."
           curl -s --fail \
@@ -168,6 +168,8 @@ update-index:
   image: ubuntu:24.04
   needs:
     - pack-templates
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq git > /dev/null 2>&1
   script:
     - |
       git config user.name "gitlab-ci-bot"
@@ -179,7 +181,7 @@ update-index:
         echo "No changes to template-index.json"
       else
         git commit -m "chore: update template-index.json [skip ci]"
-        git push "https://gitlab-ci-token:${GITLAB_TOKEN}@${CI_REPOSITORY_URL#*@}" HEAD:${CI_COMMIT_BRANCH}
+        git push "https://oauth2:${GITLAB_TOKEN}@${CI_REPOSITORY_URL#*@}" HEAD:${CI_COMMIT_BRANCH}
       fi
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
