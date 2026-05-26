@@ -17,12 +17,16 @@ VERSIONS_PATH="$REPO_DIR/versions.json"
 REPO="${GITHUB_REPOSITORY:-raojm/btwtemplates}"
 
 # 下载 URL 基础路径 — 根据平台环境变量自动选择
-# 支持: GITHUB / GITEE / ALIYUN
+# 支持: GITHUB / GITEE / GITLAB / ALIYUN
 PLATFORM="${BTWTEMPLATES_PLATFORM:-GITHUB}"
 
 if [ "$PLATFORM" = "GITEE" ]; then
     GITEE_REPO="${GITEE_REPO:-raojm/btwtemplates}"
     DOWNLOAD_BASE="https://gitee.com/${GITEE_REPO}/releases/download"
+elif [ "$PLATFORM" = "GITLAB" ]; then
+    # GitLab Generic Package URL 格式: {project_url}/-/packages/generic/{package_name}/{version}/{filename}
+    GITLAB_PROJECT_URL="${GITLAB_PROJECT_URL:-https://gitlab.com/raojm/btwtemplates}"
+    DOWNLOAD_BASE="${GITLAB_PROJECT_URL}/-/packages/generic/btwtemplates"
 elif [ "$PLATFORM" = "ALIYUN" ]; then
     # 阿里云效制品库 URL，需要配置 BTWTEMPLATES_ARTIFACT_BASE
     DOWNLOAD_BASE="${BTWTEMPLATES_ARTIFACT_BASE:-https://packages.aliyun.com/generic/btwtemplates/releases}"

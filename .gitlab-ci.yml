@@ -1,0 +1,195 @@
+# GitLab CI/CD 流水线配置 — btwtemplates 模板打包与发布
+#
+# 功能：检测 versions.json 变更 → 打包模板 → 创建 Release → 更新 template-index.json
+#
+# 使用方法：
+# 1. 将 btwtemplates 仓库推送到 GitLab
+# 2. 此文件放在仓库根目录 .gitlab-ci.yml
+# 3. 在 Settings → CI/CD → Variables 中配置：
+#    - BTWTEMPLATES_PLATFORM: GITEE (或 ALIYUN)
+#    - GITLAB_TOKEN: GitLab 个人访问令牌 (api + write_repository 权限)
+# 4. 推送代码或手动触发流水线
+#
+# 文档：https://docs.gitlab.com/ee/ci/yaml/
+
+stages:
+  - pack
+  - release
+  - update-index
+
+variables:
+  BTWTEMPLATES_PLATFORM: "GITLAB"
+  # GitLab 项目路径，如 raojm/btwtemplates
+  GITLAB_PROJECT: "${CI_PROJECT_PATH}"
+
+# 仅在 main 分支且 versions.json 或 templates/ 变更时触发
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"          # 允许手动触发
+      when: always
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - versions.json
+        - templates/**/*
+      when: always
+    - when: never                                # 其他情况不触发
+
+# ============================================================================
+# 阶段 1: 打包模板
+# ============================================================================
+pack-templates:
+  stage: pack
+  image: alpine:3.19
+  before_script:
+    - apk add --no-cache bash jq zip git curl
+  script:
+    - echo "=== 检测版本变更 ==="
+    - |
+      CHANGED_TEMPLATES=""
+      CURRENT=$(cat versions.json)
+      PREVIOUS=$(git show HEAD~1:versions.json 2>/dev/null || echo "{}")
+      
+      echo "Current versions: $CURRENT"
+      echo "Previous versions: $PREVIOUS"
+      
+      for ID in $(echo "$CURRENT" | jq -r 'keys[]'); do
+        CUR_VER=$(echo "$CURRENT" | jq -r ".$ID")
+        PREV_VER=$(echo "$PREVIOUS" | jq -r ".$ID // empty")
+        
+        if [ "$CUR_VER" != "$PREV_VER" ]; then
+          echo "  $ID: $PREV_VER → $CUR_VER (CHANGED)"
+          CHANGED_TEMPLATES="$CHANGED_TEMPLATES $ID"
+        else
+          echo "  $ID: $CUR_VER (unchanged)"
+        fi
+      done
+      
+      echo "Changed templates: $CHANGED_TEMPLATES"
+      echo "$CHANGED_TEMPLATES" > .changed_templates
+
+    - echo "=== 打包模板 ==="
+    - bash scripts/pack.sh
+
+    - echo "=== Releases ==="
+    - ls -la releases/ || echo "No releases directory"
+    - echo ""
+    - echo "=== template-index.json ==="
+    - cat template-index.json
+
+  artifacts:
+    paths:
+      - releases/
+      - template-index.json
+      - .changed_templates
+    expire_in: 1 day
+
+# ============================================================================
+# 阶段 2: 创建 GitLab Release
+# ============================================================================
+create-release:
+  stage: release
+  image: alpine:3.19
+  needs:
+    - pack-templates
+  before_script:
+    - apk add --no-cache bash jq curl
+  script:
+    - |
+      CHANGED_TEMPLATES=$(cat .changed_templates | tr -d '\n')
+      
+      if [ -z "$CHANGED_TEMPLATES" ]; then
+        echo "No version changes detected, skipping release"
+        exit 0
+      fi
+      
+      echo "Creating releases for: $CHANGED_TEMPLATES"
+      
+      for ITEM in $CHANGED_TEMPLATES; do
+        VERSION=$(jq -r ".$ITEM" versions.json)
+        TAG="${ITEM}-v${VERSION}"
+        ZIP="releases/${ITEM}.zip"
+        
+        if [ ! -f "$ZIP" ]; then
+          echo "⚠ $ZIP not found, skipping"
+          continue
+        fi
+        
+        echo "Creating release: $TAG for template: $ITEM"
+        
+        # 使用 GitLab Release API
+        # 文档: https://docs.gitlab.com/ee/api/releases/
+        STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+          --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
+          --header "Content-Type: application/json" \
+          --data "{
+            \"tag_name\": \"${TAG}\",
+            \"name\": \"${ITEM} v${VERSION}\",
+            \"description\": \"Automated release for template **${ITEM}** version **${VERSION}**\",
+            \"assets\": {
+              \"links\": [
+                {
+                  \"name\": \"${ITEM}.zip\",
+                  \"url\": \"${CI_PROJECT_URL}/-/releases/${TAG}/downloads/${ITEM}.zip\",
+                  \"link_type\": \"package\"
+                }
+              ]
+            }
+          }" \
+          "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases")
+        
+        if [ "$STATUS_CODE" -eq 201 ]; then
+          echo "  ✓ Release created: ${CI_PROJECT_URL}/-/releases/${TAG}"
+        elif [ "$STATUS_CODE" -eq 409 ]; then
+          echo "  Release $TAG already exists, updating..."
+          # 更新已有 release
+          curl -s --fail \
+            --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
+            --header "Content-Type: application/json" \
+            --data "{
+              \"description\": \"Automated release for template **${ITEM}** version **${VERSION}**\"
+            }" \
+            "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases/${TAG}" || true
+        else
+          echo "  ⚠ Failed to create release (HTTP $STATUS_CODE)"
+        fi
+        
+        # 上传 zip 作为 Generic Package (GitLab Package Registry)
+        # 文档: https://docs.gitlab.com/ee/api/packages/
+        echo "  Uploading ${ITEM}.zip to Package Registry..."
+        curl -s --fail \
+          --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
+          --upload-file "$ZIP" \
+          "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/btwtemplates/${TAG}/${ITEM}.zip" \
+          && echo "  ✓ Uploaded" || echo "  ⚠ Upload failed"
+      done
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_PIPELINE_SOURCE == "web"
+
+# ============================================================================
+# 阶段 3: 提交更新的 template-index.json
+# ============================================================================
+update-index:
+  stage: update-index
+  image: alpine:3.19
+  needs:
+    - pack-templates
+  before_script:
+    - apk add --no-cache bash git
+  script:
+    - |
+      git config user.name "gitlab-ci-bot"
+      git config user.email "gitlab-ci-bot@users.noreply.gitlab.com"
+      
+      git add template-index.json
+      
+      if git diff --cached --quiet; then
+        echo "No changes to template-index.json"
+      else
+        git commit -m "chore: update template-index.json [skip ci]"
+        # 使用 CI_TOKEN 推送，避免触发循环流水线
+        git push "https://gitlab-ci-token:${GITLAB_TOKEN}@${CI_REPOSITORY_URL#*@}" HEAD:${CI_COMMIT_BRANCH}
+      fi
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_PIPELINE_SOURCE == "web"
