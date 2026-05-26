@@ -1,0 +1,120 @@
+# 阿里云效 Flow 流水线配置
+# 功能：检测 versions.json 变更 → 打包模板 → 上传制品 → 更新 template-index.json
+#
+# 使用方法：
+# 1. 在阿里云效中创建 YAML 流水线，导入此文件
+# 2. 配置代码源（Codeup/GitHub/Gitee/GitLab）指向 btwtemplates 仓库
+# 3. 在流水线设置中添加服务连接（certificate.serviceConnection）
+# 4. 如需制品发布，配置制品库服务连接
+#
+# 文档：https://help.aliyun.com/zh/yunxiao/user-guide/yaml-preliminary-experience/
+
+name: btwtemplates-打包与发布
+
+sources:
+  btwtemplates_repo:
+    type: github                                          # 代码源类型，按需改为 codeup/gitlab/gitee
+    name: btwtemplates
+    endpoint: https://github.com/raojm/btwtemplates.git   # 代码仓库地址
+    branch: main
+    triggerEvents:
+      - push                                              # push 触发
+    certificate:
+      type: serviceConnection
+      serviceConnection: <your-service-connection-id>     # 替换为你的服务连接 ID
+
+stages:
+  pack_and_release:
+    name: 打包与发布
+    jobs:
+      pack_job:
+        name: 模板打包
+        runsOn:
+          group: public/cn-beijing
+          container: build-steps-public-registry.cn-beijing.cr.aliyuncs.com/build-steps/alinux3:latest
+        steps:
+          install_deps:
+            step: ShellBash
+            name: 安装依赖
+            with:
+              run: |
+                yum install -y jq zip
+
+          detect_changes:
+            step: ShellBash
+            name: 检测版本变更
+            with:
+              run: |
+                echo "=== 检测 versions.json 变更 ==="
+
+                CHANGED_TEMPLATES=""
+
+                CURRENT=$(cat versions.json)
+                PREVIOUS=$(git show HEAD~1:versions.json 2>/dev/null || echo "{}")
+
+                echo "Current versions: $CURRENT"
+                echo "Previous versions: $PREVIOUS"
+
+                # 检查每个模板的版本是否变更
+                for ID in $(echo "$CURRENT" | jq -r 'keys[]'); do
+                  CUR_VER=$(echo "$CURRENT" | jq -r ".$ID")
+                  PREV_VER=$(echo "$PREVIOUS" | jq -r ".$ID // empty")
+
+                  if [ "$CUR_VER" != "$PREV_VER" ]; then
+                    echo "  $ID: $PREV_VER → $CUR_VER (CHANGED)"
+                    CHANGED_TEMPLATES="$CHANGED_TEMPLATES $ID"
+                  else
+                    echo "  $ID: $CUR_VER (unchanged)"
+                  fi
+                done
+
+                echo "changed_templates=$CHANGED_TEMPLATES"
+
+                if [ -n "$CHANGED_TEMPLATES" ]; then
+                  echo "has_changes=true" >> $CI_JOB_OUTPUT
+                  echo "changed_templates=$CHANGED_TEMPLATES" >> $CI_JOB_OUTPUT
+                else
+                  echo "has_changes=false" >> $CI_JOB_OUTPUT
+                fi
+
+          pack_templates:
+            step: ShellBash
+            name: 打包模板
+            with:
+              run: |
+                export BTWTEMPLATES_PLATFORM=ALIYUN
+                export BTWTEMPLATES_ARTIFACT_BASE="${BTWTEMPLATES_ARTIFACT_BASE:-https://packages.aliyun.com/generic/btwtemplates/releases}"
+                bash scripts/pack.sh
+
+                echo "=== Releases ==="
+                ls -la releases/
+                echo ""
+                echo "=== template-index.json ==="
+                cat template-index.json
+
+          upload_artifacts:
+            step: ArtifactUpload
+            name: 上传构建物
+            with:
+              uploadType: flowPublic
+              artifact: btwtemplates
+              filePath:
+                - releases/
+                - template-index.json
+
+          commit_index:
+            step: ShellBash
+            name: 提交更新的 template-index.json
+            with:
+              run: |
+                git config user.name "yunxiao-bot"
+                git config user.email "yunxiao-bot@users.noreply.aliyun.com"
+
+                git add template-index.json
+
+                if git diff --cached --quiet; then
+                  echo "No changes to template-index.json"
+                else
+                  git commit -m "chore: update template-index.json [skip ci]"
+                  git push
+                fi

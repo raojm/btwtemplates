@@ -1,0 +1,107 @@
+# Gitee Go CI/CD 流水线配置
+# 功能：检测 versions.json 变更 → 打包模板 → 上传制品 → 更新 template-index.json
+#
+# 使用方法：
+# 1. 将 btwtemplates 仓库推送到 Gitee
+# 2. 在仓库中开通 Gitee Go
+# 3. 此文件放在 .workflow/MasterPipeline.yml
+# 4. 在 Gitee Go 设置中配置制品库
+#
+# 文档：https://help.gitee.com/gitee-go/
+
+name: btwtemplates-pack-release
+displayName: '模板打包与发布'
+
+triggers:
+  push:
+    include:
+      - versions.json
+      - templates/**
+
+variables:
+  REPO_NAME: 'raojm/btwtemplates'
+
+stages:
+  - stage:
+      name: pack
+      displayName: 打包
+      strategy: naturally
+      steps:
+        - step: build@bash
+          name: install-and-pack
+          displayName: 安装依赖并打包
+          inputs:
+            script: |
+              set -e
+
+              echo "=== 安装依赖 ==="
+              apt-get update && apt-get install -y jq zip 2>/dev/null || yum install -y jq zip 2>/dev/null || { echo "尝试使用已有工具"; }
+
+              echo "=== 检测版本变更 ==="
+
+              CHANGED_TEMPLATES=""
+
+              CURRENT=$(cat versions.json)
+              PREVIOUS=$(git show HEAD~1:versions.json 2>/dev/null || echo "{}")
+
+              echo "Current versions: $CURRENT"
+              echo "Previous versions: $PREVIOUS"
+
+              for ID in $(echo "$CURRENT" | jq -r 'keys[]'); do
+                CUR_VER=$(echo "$CURRENT" | jq -r ".$ID")
+                PREV_VER=$(echo "$PREVIOUS" | jq -r ".$ID // empty")
+
+                if [ "$CUR_VER" != "$PREV_VER" ]; then
+                  echo "  $ID: $PREV_VER → $CUR_VER (CHANGED)"
+                  CHANGED_TEMPLATES="$CHANGED_TEMPLATES $ID"
+                else
+                  echo "  $ID: $CUR_VER (unchanged)"
+                fi
+              done
+
+              echo "Changed templates: $CHANGED_TEMPLATES"
+
+              echo "=== 打包模板 ==="
+              export BTWTEMPLATES_PLATFORM=GITEE
+              export GITEE_REPO="${GITEE_REPO:-raojm/btwtemplates}"
+              bash scripts/pack.sh
+
+              echo "=== Releases ==="
+              ls -la releases/ || echo "No releases directory"
+              echo ""
+              echo "=== template-index.json ==="
+              cat template-index.json
+
+              # 保存变更信息到文件供后续步骤使用
+              echo "$CHANGED_TEMPLATES" > .changed_templates
+
+        - step: publish@general_artifacts
+          name: publish-artifacts
+          displayName: 发布制品
+          inputs:
+            artifact: btwtemplates-releases
+            path: releases/
+
+  - stage:
+      name: commit-index
+      displayName: 更新索引
+      strategy: naturally
+      steps:
+        - step: build@bash
+          name: commit-template-index
+          displayName: 提交更新的 template-index.json
+          inputs:
+            script: |
+              set -e
+
+              git config user.name "gitee-go-bot"
+              git config user.email "gitee-go-bot@gitee.com"
+
+              git add template-index.json
+
+              if git diff --cached --quiet; then
+                echo "No changes to template-index.json"
+              else
+                git commit -m "chore: update template-index.json [skip ci]"
+                git push
+              fi
