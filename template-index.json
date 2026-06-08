@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-05-25",
+  "updated": "2026-06-08",
   "templates": [
     {
       "id": "basic",
@@ -14,7 +14,7 @@
         "ecs"
       ],
       "download_url": "https://github.com/raojm/btwtemplates/releases/download/basic-v1.0.0/basic.zip",
-      "checksum": "64da8831fb84399fa1e153666e66af0c29122b77019c9ac7ecf608c5fab33690"
+      "checksum": "10e9a6c7a7d243f678d83a37e5122a854bdd9f24d83e3f7d903f11154fbad5e5"
     }
   ]
 }
