@@ -95,8 +95,7 @@ jobs:
               echo "  Creating new release $TAG..."
               gh release create "$TAG" "$ZIP" \
                 --title "$ITEM v$VERSION" \
-                --notes "Automated release for template **$ITEM** version **$VERSION**" \
-                --exclude-source
+                --notes "Automated release for template **$ITEM** version **$VERSION**"
             fi
 
             echo "  ✓ Released: https://github.com/${{ github.repository }}/releases/tag/$TAG"
