@@ -26,6 +26,8 @@ jobs:
 
       - name: Detect version changes
         id: versions
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           CHANGED_TEMPLATES=""
 
@@ -42,16 +44,30 @@ jobs:
             echo "Current versions: $CURRENT"
             echo "Previous versions: $PREVIOUS"
 
-            # 检查每个模板的版本是否变更
+            # 检查每个模板的版本是否变更，或 release 是否不存在（上次创建失败）
             for ID in $(echo "$CURRENT" | jq -r 'keys[]'); do
               CUR_VER=$(echo "$CURRENT" | jq -r ".$ID")
               PREV_VER=$(echo "$PREVIOUS" | jq -r ".$ID // empty")
+              TAG="${ID}-v${CUR_VER}"
+
+              VERSION_CHANGED=false
+              RELEASE_MISSING=false
 
               if [ "$CUR_VER" != "$PREV_VER" ]; then
                 echo "  $ID: $PREV_VER → $CUR_VER (CHANGED)"
-                CHANGED_TEMPLATES="$CHANGED_TEMPLATES $ID"
+                VERSION_CHANGED=true
               else
                 echo "  $ID: $CUR_VER (unchanged)"
+              fi
+
+              # Check if release exists (retry if previous creation failed)
+              if ! gh release view "$TAG" >/dev/null 2>&1; then
+                echo "  $ID: release $TAG does not exist, will create"
+                RELEASE_MISSING=true
+              fi
+
+              if [ "$VERSION_CHANGED" = true ] || [ "$RELEASE_MISSING" = true ]; then
+                CHANGED_TEMPLATES="$CHANGED_TEMPLATES $ID"
               fi
             done
           fi
