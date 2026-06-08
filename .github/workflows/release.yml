@@ -30,23 +30,31 @@ jobs:
           CHANGED_TEMPLATES=""
 
           CURRENT=$(cat versions.json)
-          PREVIOUS=$(git show HEAD~1:versions.json 2>/dev/null || echo "{}")
 
-          echo "Current versions: $CURRENT"
-          echo "Previous versions: $PREVIOUS"
-
-          # 检查每个模板的版本是否变更
-          for ID in $(echo "$CURRENT" | jq -r 'keys[]'); do
-            CUR_VER=$(echo "$CURRENT" | jq -r ".$ID")
-            PREV_VER=$(echo "$PREVIOUS" | jq -r ".$ID // empty")
-
-            if [ "$CUR_VER" != "$PREV_VER" ]; then
-              echo "  $ID: $PREV_VER → $CUR_VER (CHANGED)"
+          # workflow_dispatch: release all templates (no previous commit to compare)
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual trigger: releasing all templates"
+            for ID in $(echo "$CURRENT" | jq -r 'keys[]'); do
               CHANGED_TEMPLATES="$CHANGED_TEMPLATES $ID"
-            else
-              echo "  $ID: $CUR_VER (unchanged)"
-            fi
-          done
+            done
+          else
+            PREVIOUS=$(git show HEAD~1:versions.json 2>/dev/null || echo "{}")
+            echo "Current versions: $CURRENT"
+            echo "Previous versions: $PREVIOUS"
+
+            # 检查每个模板的版本是否变更
+            for ID in $(echo "$CURRENT" | jq -r 'keys[]'); do
+              CUR_VER=$(echo "$CURRENT" | jq -r ".$ID")
+              PREV_VER=$(echo "$PREVIOUS" | jq -r ".$ID // empty")
+
+              if [ "$CUR_VER" != "$PREV_VER" ]; then
+                echo "  $ID: $PREV_VER → $CUR_VER (CHANGED)"
+                CHANGED_TEMPLATES="$CHANGED_TEMPLATES $ID"
+              else
+                echo "  $ID: $CUR_VER (unchanged)"
+              fi
+            done
+          fi
 
           echo "changed_templates=$CHANGED_TEMPLATES" >> $GITHUB_OUTPUT
 
