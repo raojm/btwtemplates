@@ -1,4 +1,5 @@
 {
+  "_comment": "自动生成，勿手动编辑。运行 bash scripts/pack.sh 更新。数据来源: templates/{id}/template.json",
   "version": 1,
   "updated": "2026-06-08",
   "templates": [
@@ -7,14 +8,14 @@
       "name": "Basic ECS",
       "description": "基础 ECS 架构，包含登录/移动/输入处理/视图同步",
       "author": "ByteWorld",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "min_engine_version": "4.6",
       "tags": [
         "basic",
         "ecs"
       ],
-      "download_url": "https://github.com/raojm/btwtemplates/releases/download/basic-v1.0.1/basic.zip",
-      "checksum": "7ac57ea9a2d75c334f063ec5a6c563f1f6c86f16c5d20704534aacf0be4dc377"
+      "download_url": "https://github.com/raojm/btwtemplates/releases/download/basic-v1.0.2/basic.zip",
+      "checksum": "81de3a7c9b72321d4c849570d014cb834e6e0e0f4eb45daf0f1528ebffe75541"
     }
   ]
 }

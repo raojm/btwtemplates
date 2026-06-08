@@ -4,12 +4,11 @@ on:
   push:
     branches: [main]
     paths:
-      - 'versions.json'        # 版本号变更时触发
-      - 'templates/**'         # 模板文件变更时触发
-  workflow_dispatch:           # 允许手动触发
+      - 'templates/*/template.json'  # 任意模板的 template.json 变更时触发
+  workflow_dispatch:                 # 允许手动触发
 
 permissions:
-  contents: write              # 需要写权限来 commit 和创建 release
+  contents: write                    # 需要写权限来 commit 和创建 release
 
 jobs:
   pack-and-release:
@@ -18,7 +17,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
         with:
-          fetch-depth: 2       # 需要上一个 commit 来比较 versions.json
+          fetch-depth: 2             # 需要上一个 commit 来比较版本
 
       - name: Install dependencies
         run: |
@@ -31,46 +30,43 @@ jobs:
         run: |
           CHANGED_TEMPLATES=""
 
-          CURRENT=$(cat versions.json)
+          # 扫描 templates/ 目录
+          for DIR in templates/*/; do
+            [ -f "$DIR/template.json" ] || continue
+            ID=$(basename "$DIR")
+            CUR_VER=$(jq -r '.version // "1.0.0"' "$DIR/template.json")
+            TAG="${ID}-v${CUR_VER}"
 
-          # workflow_dispatch: release all templates (no previous commit to compare)
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "Manual trigger: releasing all templates"
-            for ID in $(echo "$CURRENT" | jq -r 'keys[]'); do
+            VERSION_CHANGED=false
+            RELEASE_MISSING=false
+
+            # workflow_dispatch: release all templates
+            if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+              echo "$ID: v$CUR_VER (manual trigger)"
               CHANGED_TEMPLATES="$CHANGED_TEMPLATES $ID"
-            done
-          else
-            PREVIOUS=$(git show HEAD~1:versions.json 2>/dev/null || echo "{}")
-            echo "Current versions: $CURRENT"
-            echo "Previous versions: $PREVIOUS"
+              continue
+            fi
 
-            # 检查每个模板的版本是否变更，或 release 是否不存在（上次创建失败）
-            for ID in $(echo "$CURRENT" | jq -r 'keys[]'); do
-              CUR_VER=$(echo "$CURRENT" | jq -r ".$ID")
-              PREV_VER=$(echo "$PREVIOUS" | jq -r ".$ID // empty")
-              TAG="${ID}-v${CUR_VER}"
+            # 比较 version 字段是否变更
+            PREV_VER=$(git show HEAD~1:"$DIR/template.json" 2>/dev/null | jq -r '.version // "1.0.0"' || echo "none")
 
-              VERSION_CHANGED=false
-              RELEASE_MISSING=false
+            if [ "$CUR_VER" != "$PREV_VER" ]; then
+              echo "$ID: $PREV_VER → $CUR_VER (CHANGED)"
+              VERSION_CHANGED=true
+            else
+              echo "$ID: v$CUR_VER (unchanged)"
+            fi
 
-              if [ "$CUR_VER" != "$PREV_VER" ]; then
-                echo "  $ID: $PREV_VER → $CUR_VER (CHANGED)"
-                VERSION_CHANGED=true
-              else
-                echo "  $ID: $CUR_VER (unchanged)"
-              fi
+            # Check if release exists (retry if previous creation failed)
+            if ! gh release view "$TAG" >/dev/null 2>&1; then
+              echo "  Release $TAG does not exist, will create"
+              RELEASE_MISSING=true
+            fi
 
-              # Check if release exists (retry if previous creation failed)
-              if ! gh release view "$TAG" >/dev/null 2>&1; then
-                echo "  $ID: release $TAG does not exist, will create"
-                RELEASE_MISSING=true
-              fi
-
-              if [ "$VERSION_CHANGED" = true ] || [ "$RELEASE_MISSING" = true ]; then
-                CHANGED_TEMPLATES="$CHANGED_TEMPLATES $ID"
-              fi
-            done
-          fi
+            if [ "$VERSION_CHANGED" = true ] || [ "$RELEASE_MISSING" = true ]; then
+              CHANGED_TEMPLATES="$CHANGED_TEMPLATES $ID"
+            fi
+          done
 
           echo "changed_templates=$CHANGED_TEMPLATES" >> $GITHUB_OUTPUT
 
@@ -101,7 +97,7 @@ jobs:
           # 为每个变更的模板创建独立 Release
           # tag 格式: {template_id}-v{version}，避免多模板版本号冲突
           for ITEM in $CHANGED; do
-            VERSION=$(jq -r ".$ITEM" versions.json)
+            VERSION=$(jq -r '.version // "1.0.0"' "templates/$ITEM/template.json")
             TAG="${ITEM}-v${VERSION}"
             ZIP="releases/${ITEM}.zip"
 
