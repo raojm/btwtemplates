@@ -5,8 +5,9 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     const project_root = b.option([]const u8, "project-root", "Project root directory (parent of .zigscript/)") orelse blk: {
-        // Zig 0.16: b.build_root is the package root, project root is its parent
-        break :blk b.pathFromRoot("..");
+        const cwd = std.process.currentPathAlloc(b.graph.io, b.allocator) catch unreachable;
+        defer b.allocator.free(cwd);
+        break :blk std.fs.path.resolve(b.allocator, &.{ cwd, ".." }) catch unreachable;
     };
 
     const build_client = b.option(bool, "client", "Build only client library") orelse false;
