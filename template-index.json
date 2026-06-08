@@ -7,14 +7,14 @@
       "name": "Basic ECS",
       "description": "基础 ECS 架构，包含登录/移动/输入处理/视图同步",
       "author": "ByteWorld",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "min_engine_version": "4.6",
       "tags": [
         "basic",
         "ecs"
       ],
-      "download_url": "https://github.com/raojm/btwtemplates/releases/download/basic-v1.0.0/basic.zip",
-      "checksum": "10e9a6c7a7d243f678d83a37e5122a854bdd9f24d83e3f7d903f11154fbad5e5"
+      "download_url": "https://github.com/raojm/btwtemplates/releases/download/basic-v1.0.1/basic.zip",
+      "checksum": "1df867e88d178387cc466e5601fa000e54ab4a099e5222e07cd8ea3c6afd919d"
     }
   ]
 }
