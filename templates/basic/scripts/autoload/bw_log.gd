@@ -9,16 +9,16 @@ extends Node
 # Variadic signature accepts 1 or 2 arguments:
 #   BwLog.info("message")            -> default module "app"
 #   BwLog.info("module", "message")  -> standard usage
-static func info(module: String = "", message: String = "") -> void:
+func info(module: String = "", message: String = "") -> void:
 	_emit(module, message, "INFO")
 
-static func warn(module: String = "", message: String = "") -> void:
+func warn(module: String = "", message: String = "") -> void:
 	_emit(module, message, "WARN")
 
-static func error(module: String = "", message: String = "") -> void:
+func error(module: String = "", message: String = "") -> void:
 	_emit(module, message, "ERROR")
 
-static func debug(module: String = "", message: String = "") -> void:
+func debug(module: String = "", message: String = "") -> void:
 	_emit(module, message, "DEBUG")
 
 static func _emit(module: String, message: String, level: String) -> void:
@@ -65,9 +65,9 @@ static func _format_bbcode(timestamp: String, level: String, module: String, mes
 
 static func _timestamp() -> String:
 	var ticks = Time.get_ticks_msec()
-	var total_sec = ticks / 1000
+	var total_sec = int(ticks / 1000.0)
 	var millis = ticks % 1000
-	var h = total_sec / 3600
-	var m = (total_sec % 3600) / 60
+	var h = int(total_sec / 3600.0)
+	var m = int((total_sec % 3600) / 60.0)
 	var s = total_sec % 60
 	return "%02d:%02d:%02d.%03d" % [h, m, s, millis]

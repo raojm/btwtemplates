@@ -54,8 +54,7 @@ func _handle_client(client: StreamPeerTCP) -> void:
 	else:
 		result = {"ok": false, "error": "Unknown endpoint: " + path}
 
-	var json = JSON.new()
-	var body_str = json.stringify(result)
+	var body_str = JSON.stringify(result)
 	var response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: %d\r\nAccess-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n%s" % [body_str.length(), body_str]
 	client.put_data(response.to_utf8_buffer())
 
