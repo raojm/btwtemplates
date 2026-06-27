@@ -1,27 +1,40 @@
 extends Node
 
-# Single sink, both targets handled by the same call:
-#  • Godot "Output" dock renders BBCode as RichText
-#  • Godot's __print_line_rich internally converts the BBCode tags we use
-#    (`[color=name]`, `[b]`, `[/b]`) to ANSI escape codes for stdout, so
-#    real terminals also see colors.
+# Log levels (match C++ ByteWorldLog::Level)
+# 0=TRACE, 1=DEBUG, 2=INFO, 3=WARN, 4=ERROR
+const LVL_TRACE := 0
+const LVL_DEBUG := 1
+const LVL_INFO := 2
+const LVL_WARN := 3
+const LVL_ERROR := 4
+
+# Current log level (default INFO=2, synced from C++ via ProjectSettings)
+static func _get_level() -> int:
+	return ProjectSettings.get_setting("bw_log_level", LVL_INFO)
 
 # Variadic signature accepts 1 or 2 arguments:
 #   BwLog.info("message")            -> default module "app"
 #   BwLog.info("module", "message")  -> standard usage
-func info(module: String = "", message: String = "") -> void:
-	_emit(module, message, "INFO")
-
-func warn(module: String = "", message: String = "") -> void:
-	_emit(module, message, "WARN")
-
-func error(module: String = "", message: String = "") -> void:
-	_emit(module, message, "ERROR")
+func trace(module: String = "", message: String = "") -> void:
+	_emit(module, message, "TRACE", LVL_TRACE)
 
 func debug(module: String = "", message: String = "") -> void:
-	_emit(module, message, "DEBUG")
+	_emit(module, message, "DEBUG", LVL_DEBUG)
 
-static func _emit(module: String, message: String, level: String) -> void:
+func info(module: String = "", message: String = "") -> void:
+	_emit(module, message, "INFO", LVL_INFO)
+
+func warn(module: String = "", message: String = "") -> void:
+	_emit(module, message, "WARN", LVL_WARN)
+
+func error(module: String = "", message: String = "") -> void:
+	_emit(module, message, "ERROR", LVL_ERROR)
+
+static func _emit(module: String, message: String, level: String, level_int: int) -> void:
+	# Level filter: only emit if current_level <= this level
+	if _get_level() > level_int:
+		return
+
 	var mod: String = module
 	var msg: String = message
 	if msg == "" and mod != "":

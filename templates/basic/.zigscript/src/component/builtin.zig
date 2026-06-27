@@ -6,6 +6,8 @@
 //! 注意：修改此文件时，必须同步修改 rustserver/crates/libs/gamescript/src/builtin.rs
 
 const std = @import("std");
+const fixed_math = @import("fixed_math");
+const FixedVec3 = fixed_math.FixedVec3;
 
 // ============================================================================
 // 同步层级常量 (Sync Tier Constants)
@@ -229,16 +231,15 @@ pub const AuthenResponse = extern struct {
 // 位置相关组件 (Position Components) - ID: 300-302
 // ============================================================================
 
-/// 位置 (id=300, version=1)
+/// 位置 (id=300, version=2)
+/// v2: 改用 FixedVec3 (Q32.32 定点数), 跨平台确定性, 无需 f32<->FixedVec3 转换
 pub const Position = extern struct {
     pub const COMPONENT_ID: u16 = 300;
-    pub const COMPONENT_VERSION: u16 = 1;
+    pub const COMPONENT_VERSION: u16 = 2;
     pub const SYNC_TIER: SyncTier = .High;
     pub const SYNC_INTERVAL_MS: u16 = 50;
 
-    x: f32,
-    y: f32,
-    z: f32,
+    value: FixedVec3 = FixedVec3.ZERO,
 };
 
 /// 速度 (id=301, version=1)
@@ -780,7 +781,7 @@ pub fn validateBuiltinComponents() void {
     std_debug.assert(@sizeOf(AuthenResponse) == 88);
 
     // 位置组件
-    std_debug.assert(@sizeOf(Position) == 12);
+    std_debug.assert(@sizeOf(Position) == 24);
     std_debug.assert(@sizeOf(Velocity) == 12);
     std_debug.assert(@sizeOf(Rotation) == 12);
 
