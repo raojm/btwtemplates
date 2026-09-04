@@ -1,0 +1,10 @@
+{
+	"name": "Room Multiplayer",
+	"description": "多人房间游戏：认证 + 世界聊天（房间/桌子模块待 P5 后追加）",
+	"author": "ByteWorld",
+	"version": "1.0.0",
+	"min_engine_version": "4.6",
+	"tags": ["room", "multiplayer", "chat"],
+	"modules": ["authen", "chat"],
+	"variables": ["PROJECT_NAME", "GAME_ID", "ZIGSCRIPT_PATH", "FINGERPRINT", "MODULES", "GODOT_VERSION", "RENDERING_METHOD", "VIEWPORT_WIDTH", "VIEWPORT_HEIGHT"]
+}

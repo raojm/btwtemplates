@@ -1,0 +1,12 @@
+.godot/
+lib/
+.zig-cache/
+zig-out/
+.zigscript/zigscript/
+*.dll
+*.so
+*.dylib
+*.pdb
+*.ilk
+*.exp
+*.lib
