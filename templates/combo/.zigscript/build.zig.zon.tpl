@@ -7,6 +7,9 @@
         .zigscript = .{
             .path = "{{ZIGSCRIPT_PATH}}",
         },
+        .bwkernel = .{
+            .path = "{{KERNEL_PATH}}",
+        },
     },
     .paths = .{
         "build.zig",

@@ -7,4 +7,5 @@
 	"tags": ["fps", "shooter", "lockstep"],
 	"modules": [],
 	"variables": ["PROJECT_NAME", "GAME_ID", "ZIGSCRIPT_PATH", "FINGERPRINT", "MODULES", "GODOT_VERSION", "RENDERING_METHOD", "VIEWPORT_WIDTH", "VIEWPORT_HEIGHT"]
+	"KERNEL_PATH",
 }

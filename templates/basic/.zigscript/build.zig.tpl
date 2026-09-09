@@ -21,6 +21,10 @@ pub fn build(b: *std.Build) void {
     //   （all=全部启用 / 空=全不启用 / 逗号列表=精确集合）。
     const modules = b.option([]const u8, "modules", "L1 gameplay modules: all | empty(none) | comma list") orelse "{{MODULES}}";
 
+    // K1：解析 bwkernel 包根路径，透传为 zigscript 的 -Dgameplay-root 附加扫描根
+    const kernel = b.dependency("bwkernel", .{});
+    const kernel_path = kernel.builder.build_root.path orelse "";
+
     // ★ 是否在构建完静态库后自动重链 WASM 播放引擎（模式B）。默认关闭。
     const wasm_engine = b.option(bool, "wasm-engine", "Auto-build engine_play_full.wasm (mode B) after static lib") orelse false;
 
@@ -38,6 +42,7 @@ pub fn build(b: *std.Build) void {
         .@"import-table" = import_table,
         .@"wasm-ffi-gen" = wasm_ffi_gen,
         .modules = modules,
+        .@"gameplay-root" = kernel_path,
     });
 
     b.getInstallStep().dependOn(zigscript.builder.getInstallStep());
