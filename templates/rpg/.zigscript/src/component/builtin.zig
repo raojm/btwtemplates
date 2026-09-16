@@ -66,25 +66,12 @@ pub const EchoResponse = shared.EchoResponse;
 
 // ---- basic 模板私有扩展 ----
 
-/// 同步层级
-pub const SyncTier = enum(u8) {
-    /// 高频同步 (50-100ms) - 位置、速度、战斗状态等实时数据
-    High = 0,
-    /// 中频同步 (200-1000ms) - 外观、背包、客户端状态等
-    Medium = 1,
-    /// 低频同步 (1000-5000ms) - 任务、成就等不常变化的数据
-    Low = 2,
-    /// 不同步 - 仅本地使用或系统组件
-    None = 255,
-};
-
 // ============================================================================
 // 枚举类型
 // ============================================================================
 pub const RegisterGameRequest = extern struct {
     pub const COMPONENT_ID: u16 = 515;
     pub const COMPONENT_VERSION: u16 = 1;
-    pub const SYNC_TIER: SyncTier = .None;
 
     game_id: u32,
     name: [64]u8,
@@ -99,7 +86,6 @@ pub const RegisterGameRequest = extern struct {
 pub const RegisterGameResponse = extern struct {
     pub const COMPONENT_ID: u16 = 520;
     pub const COMPONENT_VERSION: u16 = 1;
-    pub const SYNC_TIER: SyncTier = .None;
 
     result_id: i32,
     _padding: u32 = 0,
@@ -109,7 +95,6 @@ pub const RegisterGameResponse = extern struct {
 pub const LeaveGameRequest = extern struct {
     pub const COMPONENT_ID: u16 = 521;
     pub const COMPONENT_VERSION: u16 = 1;
-    pub const SYNC_TIER: SyncTier = .None;
 
     game_id: u32,
     _padding: u32 = 0,
@@ -117,7 +102,6 @@ pub const LeaveGameRequest = extern struct {
 pub const LeaveGameResponse = extern struct {
     pub const COMPONENT_ID: u16 = 522;
     pub const COMPONENT_VERSION: u16 = 1;
-    pub const SYNC_TIER: SyncTier = .None;
 
     result_id: i32,
     _padding: u32 = 0,
@@ -127,14 +111,12 @@ pub const LeaveGameResponse = extern struct {
 pub const ListGameRequest = extern struct {
     pub const COMPONENT_ID: u16 = 523;
     pub const COMPONENT_VERSION: u16 = 1;
-    pub const SYNC_TIER: SyncTier = .None;
 
     _padding: u32 = 0,
 };
 pub const ListGameResponse = extern struct {
     pub const COMPONENT_ID: u16 = 524;
     pub const COMPONENT_VERSION: u16 = 1;
-    pub const SYNC_TIER: SyncTier = .None;
 
     result_id: i32,
     _padding: u32 = 0,
@@ -144,7 +126,6 @@ pub const ListGameResponse = extern struct {
 pub const UnregisterGameRequest = extern struct {
     pub const COMPONENT_ID: u16 = 525;
     pub const COMPONENT_VERSION: u16 = 1;
-    pub const SYNC_TIER: SyncTier = .None;
 
     game_id: u32,
     _padding: u32 = 0,
@@ -152,7 +133,6 @@ pub const UnregisterGameRequest = extern struct {
 pub const UnregisterGameResponse = extern struct {
     pub const COMPONENT_ID: u16 = 526;
     pub const COMPONENT_VERSION: u16 = 1;
-    pub const SYNC_TIER: SyncTier = .None;
 
     result_id: i32,
     _padding: u32 = 0,
@@ -162,7 +142,6 @@ pub const UnregisterGameResponse = extern struct {
 pub const EditorRole = extern struct {
     pub const COMPONENT_ID: u16 = 530;
     pub const COMPONENT_VERSION: u16 = 1;
-    pub const SYNC_TIER: SyncTier = .None;
 
     pub const FLAG_REGISTER_GAME: u32 = 1 << 0;
     pub const FLAG_HOT_RELOAD: u32 = 1 << 1;
