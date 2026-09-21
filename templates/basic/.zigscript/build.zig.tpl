@@ -52,7 +52,7 @@ pub fn build(b: *std.Build) void {
         const static_games = std.fs.path.join(b.allocator, &.{ repo_root, "btweditor", "static", "wasm", "games" }) catch unreachable;
         const game_json_path = std.fs.path.join(b.allocator, &.{ project_root, "game.json" }) catch unreachable;
         const game_id = readGameId(game_json_path, b);
-        const src = std.fs.path.join(b.allocator, &.{ project_root, "lib", "libzigscript_client.wasm" }) catch unreachable;
+        const src = std.fs.path.join(b.allocator, &.{ project_root, "lib", "libzigscript_client_modular.wasm" }) catch unreachable;
         const dst = std.fs.path.join(b.allocator, &.{ static_games, b.fmt("{d}.wasm", .{ game_id }) }) catch unreachable;
         const copy_step = GameWasmCopyStep.create(b, src, dst);
         copy_step.step.dependOn(zigscript.builder.getInstallStep());
@@ -84,7 +84,7 @@ fn readGameId(game_json_path: []const u8, b: *std.Build) u32 {
     };
 }
 
-/// 跨平台复制 step：把构建产物 libzigscript_client.wasm 部署到 static/wasm/games/[game_id].wasm。
+/// 跨平台复制 step：把模式A 构建产物 libzigscript_client_modular.wasm 部署到 static/wasm/games/[game_id].wasm。
 const GameWasmCopyStep = struct {
     step: std.Build.Step,
     src_path: []const u8,
