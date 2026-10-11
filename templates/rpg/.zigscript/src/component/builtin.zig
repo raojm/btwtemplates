@@ -81,7 +81,7 @@ pub const RegisterGameRequest = extern struct {
     client_dylib: [256]u8,
     icon_path: [128]u8,
     max_player_count: u8,
-    _padding: [3]u8 = [_]u8{0} ** 3,
+    _padding: [3]u8 = @splat(0),
 };
 pub const RegisterGameResponse = extern struct {
     pub const COMPONENT_ID: u16 = 520;
