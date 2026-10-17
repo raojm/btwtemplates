@@ -8,7 +8,7 @@ func _ready() -> void:
 	if not Engine.is_editor_hint():
 		queue_free()
 		return
-	_helper = Engine.get_singleton("EcsHelper")
+	_helper = EcsHelper.get_instance()
 	_tcp_server = TCPServer.new()
 	var err = _tcp_server.listen(_port)
 	if err != OK:
