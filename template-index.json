@@ -15,7 +15,7 @@
         "ecs"
       ],
       "download_url": "https://github.com/raojm/btwtemplates/releases/download/basic-v2.0.0/basic.zip",
-      "checksum": "e3c0b6c4b0f172a29c6fed13ca137b95babb22db20c8200f7c3036eecff015d5"
+      "checksum": "d54d9edf58e05b09ad466dbd66171f5d6997ff593e373d12bac62fd47cd786d9"
     },
     {
       "id": "combo",
@@ -30,7 +30,7 @@
         "all-modules"
       ],
       "download_url": "https://github.com/raojm/btwtemplates/releases/download/combo-v1.0.0/combo.zip",
-      "checksum": "659f24e9587ac5dce246d03b8193b3a7fde3cf6bf2fe815d76519bd7250717bc"
+      "checksum": "155c44ff2ab07baa0a6045164a537c83ffae4a48fc0818149ed1b6cf5db98eff"
     },
     {
       "id": "fps",
@@ -45,7 +45,7 @@
         "lockstep"
       ],
       "download_url": "https://github.com/raojm/btwtemplates/releases/download/fps-v1.0.0/fps.zip",
-      "checksum": "eff0900596aca5bc0098188e52a009b86eaa5af6d7010997c7b1c0043c6b754a"
+      "checksum": "b29b497632d863c87b562b37068aa1d8f0e572b00ff65b80db5de8b3085c3a6c"
     },
     {
       "id": "room",
@@ -60,7 +60,7 @@
         "chat"
       ],
       "download_url": "https://github.com/raojm/btwtemplates/releases/download/room-v1.0.0/room.zip",
-      "checksum": "d63ae89c4f2b71939ea817699fc9ab7a19a99e411facd30b6f92e0a57093c310"
+      "checksum": "09c6fc9e93d35fb7debd72108af55fa5289bf7ce8cea2abcb768a8436822a3ca"
     },
     {
       "id": "rpg",
@@ -75,7 +75,7 @@
         "chat"
       ],
       "download_url": "https://github.com/raojm/btwtemplates/releases/download/rpg-v1.0.0/rpg.zip",
-      "checksum": "3324b2c735d0f0bfe67a05a4c0c69480dc62eb73ce5cc432d0f00bc553d9b311"
+      "checksum": "bebb1d6a07aceb1b656d4b6995c862158a4ca1b25cca231b553769b7ff5b98ab"
     }
   ]
 }
