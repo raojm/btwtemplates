@@ -1,7 +1,7 @@
 {
-  "_comment": "自动生成，勿手动编辑。运行 bash scripts/pack.sh 更新。数据来源: templates/{id}/template.json",
+  "_comment": "自动生成，勿手动编辑。运行 bun scripts/pack.ts 更新。数据来源: templates/{id}/template.json",
   "version": 1,
-  "updated": "2026-09-04",
+  "updated": "2026-10-27",
   "templates": [
     {
       "id": "basic",
@@ -15,12 +15,12 @@
         "ecs"
       ],
       "download_url": "https://github.com/raojm/btwtemplates/releases/download/basic-v2.0.0/basic.zip",
-      "checksum": "31a1e6edcafacf586ea7207686d77e3eecb832a180e355eaa250b1b735548abc"
+      "checksum": "e3c0b6c4b0f172a29c6fed13ca137b95babb22db20c8200f7c3036eecff015d5"
     },
     {
       "id": "combo",
       "name": "Combo Demo",
-      "description": "全模块组合演示（认证 + 聊天 + 任务，演示 L1 模块可叠加）",
+      "description": "全模块组合演示（聊天 + 任务，演示 L1 模块可叠加）",
       "author": "ByteWorld",
       "version": "1.0.0",
       "min_engine_version": "4.6",
@@ -30,12 +30,12 @@
         "all-modules"
       ],
       "download_url": "https://github.com/raojm/btwtemplates/releases/download/combo-v1.0.0/combo.zip",
-      "checksum": "3f3325b5dfbf27f0dd23448cdea805bcb3ba416cf7798b7108f75c5c7659b44a"
+      "checksum": "659f24e9587ac5dce246d03b8193b3a7fde3cf6bf2fe815d76519bd7250717bc"
     },
     {
       "id": "fps",
       "name": "FPS Lockstep",
-      "description": "FPS 射击游戏（帧同步模块待 P4 上提后追加，当前含认证）",
+      "description": "FPS 射击游戏（帧同步 lockstep 模块）",
       "author": "ByteWorld",
       "version": "1.0.0",
       "min_engine_version": "4.6",
@@ -45,12 +45,12 @@
         "lockstep"
       ],
       "download_url": "https://github.com/raojm/btwtemplates/releases/download/fps-v1.0.0/fps.zip",
-      "checksum": "3666a948a4b479e81b29f64975e4748f306bc71af4b076984f62ecd46a8851c2"
+      "checksum": "eff0900596aca5bc0098188e52a009b86eaa5af6d7010997c7b1c0043c6b754a"
     },
     {
       "id": "room",
       "name": "Room Multiplayer",
-      "description": "多人房间游戏：认证 + 世界聊天（房间/桌子模块待 P5 后追加）",
+      "description": "多人房间游戏：世界聊天（房间/桌子模块待 P5 后追加）",
       "author": "ByteWorld",
       "version": "1.0.0",
       "min_engine_version": "4.6",
@@ -60,12 +60,12 @@
         "chat"
       ],
       "download_url": "https://github.com/raojm/btwtemplates/releases/download/room-v1.0.0/room.zip",
-      "checksum": "f97ef8c4455961233e752882814594edd5266d8c84d98343ec6a1ff3e23d57a2"
+      "checksum": "d63ae89c4f2b71939ea817699fc9ab7a19a99e411facd30b6f92e0a57093c310"
     },
     {
       "id": "rpg",
       "name": "RPG Quest",
-      "description": "RPG 角色扮演：认证 + 任务状态机 + 聊天",
+      "description": "RPG 角色扮演：任务状态机 + 聊天",
       "author": "ByteWorld",
       "version": "1.0.0",
       "min_engine_version": "4.6",
@@ -75,7 +75,7 @@
         "chat"
       ],
       "download_url": "https://github.com/raojm/btwtemplates/releases/download/rpg-v1.0.0/rpg.zip",
-      "checksum": "e5413e90ee6564b63e07d68f50f4e7d2dd2a499627980b0fc8dad3935c1dd107"
+      "checksum": "3324b2c735d0f0bfe67a05a4c0c69480dc62eb73ce5cc432d0f00bc553d9b311"
     }
   ]
 }

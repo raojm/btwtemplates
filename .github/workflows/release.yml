@@ -19,9 +19,14 @@ jobs:
         with:
           fetch-depth: 2             # 需要上一个 commit 来比较版本
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
       - name: Install dependencies
         run: |
-          sudo apt-get update && sudo apt-get install -y jq zip
+          sudo apt-get update && sudo apt-get install -y jq
 
       - name: Detect version changes
         id: versions
@@ -78,7 +83,7 @@ jobs:
 
       - name: Pack templates
         run: |
-          bash scripts/pack.sh
+          bun scripts/pack.ts
 
       - name: List outputs
         run: |

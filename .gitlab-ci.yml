@@ -38,7 +38,11 @@ pack-templates:
   stage: pack
   image: ubuntu:24.04
   before_script:
-    - apt-get update -qq && apt-get install -y -qq jq zip > /dev/null 2>&1
+    - apt-get update -qq && apt-get install -y -qq jq curl unzip > /dev/null 2>&1
+    # 打包脚本已迁到 bun TS（2026-10-27）：镜像里没有 bun 就装一个
+    - curl -fsSL https://bun.sh/install | bash > /dev/null 2>&1
+    - export PATH="$HOME/.bun/bin:$PATH"
+    - bun --version
   script:
     - echo "=== 检测版本变更 ==="
     - |
@@ -65,7 +69,7 @@ pack-templates:
       echo "$CHANGED_TEMPLATES" > .changed_templates
 
     - echo "=== 打包模板 ==="
-    - bash scripts/pack.sh
+    - bun scripts/pack.ts
 
     - echo "=== Releases ==="
     - ls -la releases/ || echo "No releases directory"

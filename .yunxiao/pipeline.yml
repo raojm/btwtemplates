@@ -84,7 +84,9 @@ stages:
               run: |
                 export BTWTEMPLATES_PLATFORM=ALIYUN
                 export BTWTEMPLATES_ARTIFACT_BASE="${BTWTEMPLATES_ARTIFACT_BASE:-https://packages.aliyun.com/generic/btwtemplates/releases}"
-                bash scripts/pack.sh
+                # 打包脚本已迁到 bun TS（2026-10-27）
+                command -v bun >/dev/null 2>&1 || { curl -fsSL https://bun.sh/install | bash; export PATH="$HOME/.bun/bin:$PATH"; }
+                bun scripts/pack.ts
 
                 echo "=== Releases ==="
                 ls -la releases/

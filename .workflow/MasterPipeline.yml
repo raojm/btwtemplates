@@ -35,7 +35,8 @@ stages:
               set -e
 
               echo "=== 安装依赖 ==="
-              apt-get update && apt-get install -y jq zip 2>/dev/null || yum install -y jq zip 2>/dev/null || { echo "尝试使用已有工具"; }
+              apt-get update && apt-get install -y jq curl unzip 2>/dev/null || yum install -y jq curl unzip 2>/dev/null || { echo "尝试使用已有工具"; }
+              command -v bun >/dev/null 2>&1 || { curl -fsSL https://bun.sh/install | bash; export PATH="$HOME/.bun/bin:$PATH"; }
 
               echo "=== 检测版本变更 ==="
 
@@ -64,7 +65,7 @@ stages:
               echo "=== 打包模板 ==="
               export BTWTEMPLATES_PLATFORM=GITEE
               export GITEE_REPO="${GITEE_REPO:-raojm/btwtemplates}"
-              bash scripts/pack.sh
+              bun scripts/pack.ts
 
               echo "=== Releases ==="
               ls -la releases/ || echo "No releases directory"
