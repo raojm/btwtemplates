@@ -12,7 +12,7 @@ const fixed_math = @import("fixed_math");
 const FixedVec3 = fixed_math.FixedVec3;
 const shared = @import("zigscript_component_builtin");
 
-// ---- 共享组件 re-export（与共享基线声明一一对应）----
+// ---- 共享组件 re-export（与共享基线声明一一对应；由 scripts/gen_builtin_shells.ts 再生，勿手改）----
 
 pub const InitStatus = shared.InitStatus;
 pub const QuestStatus = shared.QuestStatus;
@@ -35,6 +35,14 @@ pub const AuthenResponse = shared.AuthenResponse;
 pub const Position = shared.Position;
 pub const Velocity = shared.Velocity;
 pub const Rotation = shared.Rotation;
+pub const PhysicsWorldConfig = shared.PhysicsWorldConfig;
+pub const Collider = shared.Collider;
+pub const PhysicsPosition = shared.PhysicsPosition;
+pub const PhysicsTeleport = shared.PhysicsTeleport;
+pub const CharacterMove = shared.CharacterMove;
+pub const RigidBody = shared.RigidBody;
+pub const PhysicsImpulse = shared.PhysicsImpulse;
+pub const PhysicsContact = shared.PhysicsContact;
 pub const ClientState = shared.ClientState;
 pub const SkillState = shared.SkillState;
 pub const QuestState = shared.QuestState;

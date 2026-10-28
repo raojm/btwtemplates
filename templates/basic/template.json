@@ -2,9 +2,23 @@
 	"name": "Basic ECS",
 	"description": "基础 ECS 架构，包含登录/移动/输入处理/视图同步（L1 模块默认不启用）",
 	"author": "ByteWorld",
-	"version": "2.0.0",
+	"version": "2.0.1",
 	"min_engine_version": "4.6",
-	"tags": ["basic", "ecs"],
+	"tags": [
+		"basic",
+		"ecs"
+	],
 	"modules": [],
-	"variables": ["PROJECT_NAME", "GAME_ID", "ZIGSCRIPT_PATH", "FINGERPRINT", "MODULES", "GODOT_VERSION", "RENDERING_METHOD", "VIEWPORT_WIDTH", "VIEWPORT_HEIGHT", "KERNEL_PATH"]
+	"variables": [
+		"PROJECT_NAME",
+		"GAME_ID",
+		"ZIGSCRIPT_PATH",
+		"FINGERPRINT",
+		"MODULES",
+		"GODOT_VERSION",
+		"RENDERING_METHOD",
+		"VIEWPORT_WIDTH",
+		"VIEWPORT_HEIGHT",
+		"KERNEL_PATH"
+	]
 }
