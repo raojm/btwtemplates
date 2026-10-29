@@ -1,7 +1,7 @@
 {
   "_comment": "自动生成，勿手动编辑。运行 bun scripts/pack.ts 更新。数据来源: templates/{id}/template.json",
   "version": 1,
-  "updated": "2026-10-28",
+  "updated": "2026-10-29",
   "templates": [
     {
       "id": "basic",
@@ -15,7 +15,7 @@
         "ecs"
       ],
       "download_url": "https://github.com/raojm/btwtemplates/releases/download/basic-v2.0.1/basic.zip",
-      "checksum": "ffd9904ec0030671dd90fd6063389cf9c1d10725bdf8098d4cf1a626f5080fca"
+      "checksum": "0bfd7604941eca9d0d0bc6a2b492a6ce047c09c3931cee26ff8ad487e61a3109"
     },
     {
       "id": "combo",
@@ -30,7 +30,7 @@
         "all-modules"
       ],
       "download_url": "https://github.com/raojm/btwtemplates/releases/download/combo-v1.0.1/combo.zip",
-      "checksum": "22727ada9cab2201cf2a11e5500f391fd57be11f7b0eee991823d09afa388291"
+      "checksum": "a0e5800fed5c8004f25aefd103cf78114c6e80d63fd4cc3678e87cd4a6874ed0"
     },
     {
       "id": "fps",
@@ -45,7 +45,7 @@
         "lockstep"
       ],
       "download_url": "https://github.com/raojm/btwtemplates/releases/download/fps-v1.0.1/fps.zip",
-      "checksum": "06498b35765bd1be348613fecefe61b05fc520b58250731c5f47999d883f2f86"
+      "checksum": "b01399be913f93cd05927670634f4d4f5ee72cb12f70ad0325ee9390cb3e966c"
     },
     {
       "id": "room",
@@ -60,7 +60,7 @@
         "chat"
       ],
       "download_url": "https://github.com/raojm/btwtemplates/releases/download/room-v1.0.1/room.zip",
-      "checksum": "50a2ad1d94ae14e02369aec05f60098093974f8210983fc9f9d616f65aa849c2"
+      "checksum": "4220ce94f54d1f56508308a4c55999acc74f273e611b60651d8ad12394ae5282"
     },
     {
       "id": "rpg",
@@ -75,7 +75,7 @@
         "chat"
       ],
       "download_url": "https://github.com/raojm/btwtemplates/releases/download/rpg-v1.0.1/rpg.zip",
-      "checksum": "5c3873c3824b8ed986a01eadc13bc240dc01b2913685eec2b8c8421eec29889b"
+      "checksum": "628bbaee6df0e8f2802861ad5a8e73d30b0982bafa510bd2e7af93c71ba1115a"
     }
   ]
 }

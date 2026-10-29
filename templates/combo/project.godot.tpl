@@ -10,6 +10,8 @@ config/gameid={{GAME_ID}}
 [autoload]
 BwLog="*res://scripts/autoload/bw_log.gd"
 EcsDebugServer="*res://scripts/autoload/ecs_debug_server.gd"
+EcsNativeBootstrap="*res://scripts/autoload/ecs_native_bootstrap.gd"
+AutomationBridge="*res://scripts/autoload/automation_bridge.gd"
 
 [display]
 window/size/viewport_width={{VIEWPORT_WIDTH}}

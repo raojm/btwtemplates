@@ -73,13 +73,22 @@ pub const EchoRequest = shared.EchoRequest;
 pub const EchoResponse = shared.EchoResponse;
 
 // ---- basic 模板私有扩展 ----
+//
+// ⚠️ 本段是**平台网关组件**在项目侧的镜像（ID 515–526 / 530），id/version/布局必须与
+//   `rustserver/crates/libs/gamescript/src/builtin/components.rs` **逐字节一致**：
+//   client dylib 加载时 `validate_components_against_builtin` 会逐项核对
+//   id/version/size/align，任一项不符 ⇒ **整个 dylib 拒载**（0 组件注册、游戏静默不启动，
+//   只有 dylib_loader 一行 ERROR）。权威 zig 副本 = `games/GameHub/.zigscript/src/component/builtin.zig`。
+//   2026-10-29 实测：模板曾停在 515 v1（缺 package_url）⇒ 968 vs 1224 拒载。
 
 // ============================================================================
-// 枚举类型
+// 平台网关组件（登记 / 离开 / 列举游戏）
 // ============================================================================
 pub const RegisterGameRequest = extern struct {
     pub const COMPONENT_ID: u16 = 515;
-    pub const COMPONENT_VERSION: u16 = 1;
+    // v2（W2 Phase A 2026-09-14）：尾部追加 package_url[256]@965，
+    // 字段流 1221 + align4 尾 pad3 ⇒ @sizeOf = 1224。
+    pub const COMPONENT_VERSION: u16 = 2;
 
     game_id: u32,
     name: [64]u8,
@@ -89,63 +98,51 @@ pub const RegisterGameRequest = extern struct {
     client_dylib: [256]u8,
     icon_path: [128]u8,
     max_player_count: u8,
-    _padding: [3]u8 = @splat(0),
+    package_url: [256]u8,
 };
 pub const RegisterGameResponse = extern struct {
     pub const COMPONENT_ID: u16 = 520;
     pub const COMPONENT_VERSION: u16 = 1;
 
     result_id: i32,
-    _padding: u32 = 0,
     game_id: u32,
-    _padding2: u32 = 0,
 };
 pub const LeaveGameRequest = extern struct {
     pub const COMPONENT_ID: u16 = 521;
     pub const COMPONENT_VERSION: u16 = 1;
 
     game_id: u32,
-    _padding: u32 = 0,
 };
 pub const LeaveGameResponse = extern struct {
     pub const COMPONENT_ID: u16 = 522;
     pub const COMPONENT_VERSION: u16 = 1;
 
     result_id: i32,
-    _padding: u32 = 0,
     game_id: u32,
-    _padding2: u32 = 0,
 };
 pub const ListGameRequest = extern struct {
     pub const COMPONENT_ID: u16 = 523;
     pub const COMPONENT_VERSION: u16 = 1;
-
-    _padding: u32 = 0,
 };
 pub const ListGameResponse = extern struct {
     pub const COMPONENT_ID: u16 = 524;
     pub const COMPONENT_VERSION: u16 = 1;
 
     result_id: i32,
-    _padding: u32 = 0,
     game_count: u32,
-    _padding2: u32 = 0,
 };
 pub const UnregisterGameRequest = extern struct {
     pub const COMPONENT_ID: u16 = 525;
     pub const COMPONENT_VERSION: u16 = 1;
 
     game_id: u32,
-    _padding: u32 = 0,
 };
 pub const UnregisterGameResponse = extern struct {
     pub const COMPONENT_ID: u16 = 526;
     pub const COMPONENT_VERSION: u16 = 1;
 
     result_id: i32,
-    _padding: u32 = 0,
     game_id: u32,
-    _padding2: u32 = 0,
 };
 pub const EditorRole = extern struct {
     pub const COMPONENT_ID: u16 = 530;
@@ -175,7 +172,3 @@ pub const EditorRole = extern struct {
         return (self.flags & FLAG_MANAGE_PLAYERS) != 0;
     }
 };
-
-// ============================================================================
-// 移动请求 (服务端版本) - ID: 516+
-// ============================================================================
