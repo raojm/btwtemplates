@@ -2,7 +2,7 @@
 	"name": "FPS Lockstep",
 	"description": "FPS 射击游戏（帧同步 lockstep 模块）",
 	"author": "ByteWorld",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"min_engine_version": "4.6",
 	"tags": [
 		"fps",
