@@ -71,6 +71,8 @@ pub const KeepAliveRequest = shared.KeepAliveRequest;
 pub const KeepAliveResponse = shared.KeepAliveResponse;
 pub const EchoRequest = shared.EchoRequest;
 pub const EchoResponse = shared.EchoResponse;
+pub const EditOpRequest = shared.EditOpRequest;
+pub const EditOpResponse = shared.EditOpResponse;
 
 // ---- basic 模板私有扩展 ----
 //

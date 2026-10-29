@@ -2,7 +2,7 @@
 	"name": "RPG Quest",
 	"description": "RPG 角色扮演：任务状态机 + 聊天",
 	"author": "ByteWorld",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"min_engine_version": "4.6",
 	"tags": [
 		"rpg",

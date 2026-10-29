@@ -2,7 +2,7 @@
 	"name": "Basic ECS",
 	"description": "基础 ECS 架构，包含登录/移动/输入处理/视图同步（L1 模块默认不启用）",
 	"author": "ByteWorld",
-	"version": "2.0.2",
+	"version": "2.0.3",
 	"min_engine_version": "4.6",
 	"tags": [
 		"basic",
