@@ -167,11 +167,23 @@ func _status() -> Dictionary:
 	var sz := Vector2i.ZERO
 	if vp != null:
 		sz = vp.get_visible_rect().size
+	# ★ 2026-11-04（journey R5）：玩家 Position 进 status（移动类判据的数据侧观测面；
+	#   bootstrap 未就绪/未建玩家时缺省 null，不阻断原字段）。
+	var player_pos = null
+	var h = EcsHelper.get_instance()
+	if h != null:
+		var pcid := int(h.find_component_id("builtin.Position"))
+		var uid := int(h.get_entity_uid("player"))
+		if pcid >= 0 and uid > 0:
+			var raw: PackedByteArray = h.get_component_data(uid, pcid)
+			if raw.size() >= 24:
+				player_pos = [raw.decode_s64(0) / 4294967296.0, raw.decode_s64(8) / 4294967296.0, raw.decode_s64(16) / 4294967296.0]
 	return {
 		"ok": true, "port": _port,
 		"fps": Engine.get_frames_per_second(),
 		"nodes": get_tree().get_node_count() if get_tree() != null else 0,
 		"viewport": [sz.x, sz.y],
+		"playerPosition": player_pos,
 	}
 
 
@@ -285,6 +297,18 @@ func _cmd_input(req: Dictionary) -> Dictionary:
 	#   Godot 惯例左键=1；CDP 兼容层已负责 "left"→1 换算。
 	if btn < 1 or btn > 9:
 		return {"ok": false, "error": "invalid button %d（Godot 惯例：1=左 2=右；CDP 兼容层传 \"left\"/\"right\" 自动换算）" % btn}
+	# ★ 2026-11-04（journey R5）：kind="key" = 键盘注入（InputEventKey.physical_keycode，
+	#   对齐 _input_keys_mask 的 Input.is_physical_key_pressed 读数）。缺省仍是鼠标。
+	if str(req.get("kind", "mouse")) == "key":
+		var kc := int(req.get("keycode", 0))
+		if kc <= 0:
+			return {"ok": false, "error": "kind=key 需要 keycode（Godot KEY_*，如 W=87 A=65 S=83 D=68）"}
+		var kev := InputEventKey.new()
+		kev.physical_keycode = kc as Key
+		kev.keycode = kc as Key
+		kev.pressed = down
+		Input.parse_input_event(kev)
+		return {"ok": true, "kind": "key", "keycode": kc, "pressed": down}
 	var ev := InputEventMouseButton.new()
 	ev.button_index = btn
 	ev.pressed = down

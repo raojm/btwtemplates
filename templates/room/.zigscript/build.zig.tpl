@@ -46,6 +46,38 @@ fn readGamePhysics(b: *std.Build, project_root: []const u8) GamePhysics {
     return out;
 }
 
+/// ★ L1 玩法模块默认值 = game.json 的 `modules` 数组（2026-11-04，journey R5）。
+///   此前模块选配只活在两处：`zig build -Dmodules=`（dylib 档手敲）与渲染进本文件的
+///   {{MODULES}} 常量；而 wasm 构建（xtask）与 launcher 的 dylib 构建都不带该参数 ⇒
+///   configure 重写 `tracked_component.zig` 命名空间时把模块组件丢掉 ⇒
+///   **dylib 与 wasm 玩法能力面分叉**（system 里 `component.framesync` 直接编译失败，
+///   journey R5 实测 build-wasm 红）。与 readGamePhysics 同法取 game.json 单一真相源，
+///   优先级 = CLI `-Dmodules` > game.json `modules` > 模板渲染缺省。
+fn readGameModules(b: *std.Build, project_root: []const u8) []const u8 {
+    const fallback = "{{MODULES}}";
+    const path = std.fs.path.join(b.allocator, &.{ project_root, "game.json" }) catch return fallback;
+    const raw = Dir.readFileAlloc(Dir.cwd(), b.graph.io, path, b.allocator, .unlimited) catch return fallback;
+    defer b.allocator.free(raw);
+    const parsed = std.json.parseFromSlice(std.json.Value, b.allocator, raw, .{}) catch return fallback;
+    defer parsed.deinit();
+    const obj = switch (parsed.value) {
+        .object => |o| o,
+        else => return fallback,
+    };
+    const arr = switch (obj.get("modules") orelse return fallback) {
+        .array => |a| a,
+        else => return fallback,
+    };
+    var buf: std.ArrayList(u8) = .empty;
+    for (arr.items) |item| {
+        if (item != .string) continue;
+        if (buf.items.len > 0) buf.append(b.allocator, ',') catch return fallback;
+        buf.appendSlice(b.allocator, item.string) catch return fallback;
+    }
+    if (buf.items.len == 0) return fallback;
+    return buf.toOwnedSlice(b.allocator) catch fallback;
+}
+
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
@@ -92,7 +124,7 @@ pub fn build(b: *std.Build) void {
     //   未传 = "all"（全部启用）；-Dmodules= 空 = 全不启用；逗号列表 = 按名启用。
     // ★ 模板选配的 L1 模块（P8）：{{MODULES}} 由 template.json "modules" 渲染
     //   （空 = 不启用任何 L1 模块；逗号列表 = 精确集合；CLI -Dmodules= 可临时覆盖）。
-    const modules = b.option([]const u8, "modules", "L1 gameplay modules: all | empty(none) | comma list") orelse "{{MODULES}}";
+    const modules = b.option([]const u8, "modules", "L1 gameplay modules: all | empty(none) | comma list") orelse readGameModules(b, project_root);
 
     // ★ 物理后端透传（2026-10-27，S0.8）：框架侧提供 -Dphysics / -Dphysics-tier，
     //   包装必须声明并转发。漏转发 = **静默 no-op**（命令成功但产物没变，

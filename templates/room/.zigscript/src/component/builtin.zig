@@ -73,8 +73,6 @@ pub const EchoRequest = shared.EchoRequest;
 pub const EchoResponse = shared.EchoResponse;
 pub const EditOpRequest = shared.EditOpRequest;
 pub const EditOpResponse = shared.EditOpResponse;
-// ★ 协作租约/LWW 组件（536/538/539/540/543）是平台契约：场景 world 用项目 gid，
-//   其 dylib 必须含这些组件，`process_edit_op` 才能在场景 world 落库/回执。
 pub const EditLease = shared.EditLease;
 pub const LeaseResponse = shared.LeaseResponse;
 pub const LeaseResult = shared.LeaseResult;
@@ -84,6 +82,7 @@ pub const EditOpLog = shared.EditOpLog;
 pub const EditOpVerb = shared.EditOpVerb;
 pub const EditOpResult = shared.EditOpResult;
 pub const PersistOnlyTag = shared.PersistOnlyTag;
+pub const Color = shared.Color;
 
 // ---- basic 模板私有扩展 ----
 //

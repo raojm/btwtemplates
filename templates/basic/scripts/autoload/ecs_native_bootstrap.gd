@@ -60,6 +60,7 @@ var _player_uid: int = 0
 var _player_node: Node3D = null
 var _cid := {}
 var _boot_done := false
+var _last_input_mask: int = -1
 
 func _ready() -> void:
 	if Engine.is_editor_hint() and OS.get_environment("BYTEWORLD_BOOTSTRAP_IN_EDITOR") != "1":
@@ -286,6 +287,15 @@ func _find_first(node: Node, cls: String) -> Node:
 func _process(_delta: float) -> void:
 	if not _boot_done or _player_node == null or _player_uid == 0:
 		return
+	# E. 输入 → framesync.PlayerInput.keys_pressed（★ F-J5-7 接线：此前钩子悬空——
+	#    _input_keys_mask() 定义了却没有任何消费点，覆写毫无效果。变化才写避免每帧标脏；
+	#    未启用 framesync 模块（无该组件）时静默跳过 = 行为与旧版一致）。
+	var input_cid := int(_cid.get("framesync.PlayerInput", -1))
+	if input_cid >= 0:
+		var mask := _input_keys_mask()
+		if mask != _last_input_mask:
+			_last_input_mask = mask
+			_helper.add_component(_player_uid, input_cid, {"keys_pressed": mask})
 	var cid := int(_cid.get("builtin.Position", -1))
 	if cid < 0:
 		return
@@ -300,13 +310,27 @@ func _process(_delta: float) -> void:
 
 # ── 游戏侧扩展点（子类/同名覆写均可；此处给出空实现与契约）─────────────────
 ## 追加到 stub 玩家上的组件：{ "组件名": {字段: 值}, ... }。未注册的组件会自动跳过。
+## ★ 2026-11-04（journey R5）：默认带 framesync.PlayerInput（keys_pressed 位掩码由
+##   _process 消费 _input_keys_mask() 写入）。未启用 framesync 模块时组件不存在，
+##   _collect_component_ids 会记 warn 并跳过 = 行为与旧版一致。
 func _extra_player_components() -> Dictionary:
-	return {}
+	return { "framesync.PlayerInput": {"keys_pressed": 0, "action_pressed": 0} }
 
 ## 本帧要写进 `framesync.PlayerInput.keys_pressed` 的位掩码（无该组件时不生效）。
-## 默认 0 = 不驱动输入；需要键盘驱动的游戏在子类里覆写。
+## ★ 2026-11-04（journey R5）：默认实现 = 读 WASD（位定义对齐 framesync.PlayerInput
+##   KEY_W/A/S/D = bit0..3）。模板启用 framesync 模块（game.json `modules`）后
+##   「播起来即可键盘移动」；要自定义输入就覆写本函数（_process 每帧消费，变化才写）。
 func _input_keys_mask() -> int:
-	return 0
+	var mask := 0
+	if Input.is_physical_key_pressed(KEY_W):
+		mask |= 1
+	if Input.is_physical_key_pressed(KEY_A):
+		mask |= 2
+	if Input.is_physical_key_pressed(KEY_S):
+		mask |= 4
+	if Input.is_physical_key_pressed(KEY_D):
+		mask |= 8
+	return mask
 
 func _add(comp_name: String, data: Dictionary) -> bool:
 	var cid := int(_cid.get(comp_name, -1))
