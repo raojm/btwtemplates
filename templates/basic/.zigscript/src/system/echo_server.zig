@@ -6,6 +6,15 @@
 //! 3. 创建 EchoResponse 组件并添加到请求实体
 //!
 //! 删除此文件即可移除样板代码。
+//!
+//! ── ★★ 写「玩法系统」前的两条框架契约（journey R5 实证，缺一即静默行为异常）──
+//! ① `SystemAnnotation` **必须显式 `.interval_ticks = 1`**：缺省 0 ⇒ always_run=false
+//!    ⇒ 系统只在参数组件 changed 时执行——输入系统「变化才写」PlayerInput 之类的
+//!    语义下，按住键也只推进 1 步就停。FPSDemo 全部玩法系统显式 =1。
+//! ② 玩法推进必须过 `entity_source.step_gate.shouldStep`（签名加
+//!    `clock: *shared_mod.Shared(input.StepClock)` 参数，packWindow 装、shouldStep 判）：
+//!    否则每宿主 tick 推进（渲染帧率），速率 = 墙钟 2.5×，且联机/回放形态确定性分叉。
+//!    参考实现 = games/JourneyR5Game/.zigscript/src/system/move_player.zig（单机运动学）。
 
 const std = @import("std");
 const game_types = @import("game_types");
