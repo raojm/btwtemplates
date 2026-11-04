@@ -80,6 +80,11 @@ func local_uin() -> int:
 			return int(raw)
 	return 1
 
+## SHM 联机模式（BYTEWORLD_SHM_MODE=1）：host 权威跑系统、本窗只镜像；
+## 本地桩降级为输入上行载体（改名 input_stub）。
+func _is_shm_mode() -> bool:
+	return OS.get_environment("BYTEWORLD_SHM_MODE") == "1"
+
 func player_uid() -> int:
 	return _player_uid
 
@@ -193,9 +198,15 @@ func _spawn_local_player() -> void:
 			% [_player_uid, uin, hp, str(written)])
 
 	# ③ 名字绑定（绑定规则/探针按名字取 uid 的唯一来源）
-	_helper.register_entity_uid("player", _player_uid)
-	BwLog.info(TAG, "entity name: player → 0x%X（回读 %d）"
-		% [_player_uid, _helper.get_entity_uid("player")])
+	# ★ T77④（journey R5）：SHM 模式下本地桩改名 "input_stub"——SHM 架构 = host
+	#   权威跑系统、窗口镜像，服务器同步的会话玩家（uid=(1<<48)|会话uin）才是真
+	#   "player"；本地桩只是**输入上行载体**（keys_pressed 变化 → 上传）。若沿用
+	#   "player" 名，桥/绑定的 playerPosition 会读到本地桩的假 [0,0,0]，遮蔽服务
+	#   器真玩家（journey 实测：本地 [0,0,0] vs host z=-18）。非 SHM 档行为不变。
+	var player_name := "input_stub" if _is_shm_mode() else "player"
+	_helper.register_entity_uid(player_name, _player_uid)
+	BwLog.info(TAG, "entity name: %s → 0x%X（回读 %d）"
+		% [player_name, _player_uid, _helper.get_entity_uid(player_name)])
 
 # 初始 HP：与游戏侧同一份宿主契约（`BW_GAME_INIT_PARAMS` 的 player_hp，只认 >0 整数）。
 # 两边各写死一个默认值 ⇒ 本引导先建实体时会把注入值覆盖掉（FPSDemo 踩过）。
