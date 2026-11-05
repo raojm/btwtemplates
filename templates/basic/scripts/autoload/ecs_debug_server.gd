@@ -10,7 +10,9 @@ func _ready() -> void:
 		return
 	_helper = EcsHelper.get_instance()
 	_tcp_server = TCPServer.new()
-	var err = _tcp_server.listen(_port)
+	# 只绑环回：缺省 "*"（0.0.0.0）会让 Windows 防火墙每次起编辑器都弹授权框。
+	# 本服务仅供本机调试（编辑器内 ECS debug HTTP），无 LAN 需求。
+	var err = _tcp_server.listen(_port, "127.0.0.1")
 	if err != OK:
 		BwLog.warn("EcsDebug", "Failed to listen on port %d" % _port)
 		return

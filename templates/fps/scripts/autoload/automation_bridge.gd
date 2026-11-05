@@ -1,6 +1,6 @@
 extends Node
 ## 引擎内自动化桥（A6 同族 · 独立 Godot 游戏窗口）：
-##   env `BYTEWORLD_AUTOTEST_BRIDGE=1` 时起 WebSocket server（127.0.0.1），对外暴露
+##   env `BYTEWORLD_AUTOTEST_BRIDGE=1` 时起 WebSocket server（**仅环回** 127.0.0.1），对外暴露
 ##   命令集 + CDP 兼容壳子集。
 ##
 ## ★ 端口模式（多实例不冲突）：
@@ -35,6 +35,11 @@ extends Node
 
 const TAG := "AutomationBridge"
 const PORT_DEFAULT := 9490
+## ★ 只绑环回：TCPServer.listen() 的 bind_address 缺省是 "*"（0.0.0.0），
+##   Windows 会对每个新起的游戏窗口弹「是否允许访问网络」防火墙授权框。
+##   桥只被本机工具（game_bridge.ts 连 ws://127.0.0.1:<port>）消费，无需 LAN。
+##   确需局域网访问时显式 `BYTEWORLD_AUTOTEST_BRIDGE_BIND=0.0.0.0`。
+const BIND_DEFAULT := "127.0.0.1"
 
 var _tcp: TCPServer = null
 var _peers: Array = []
@@ -54,13 +59,16 @@ func _ready() -> void:
 	_debug = OS.get_environment("BYTEWORLD_AUTOTEST_BRIDGE_DEBUG") == "1"
 	var explicit := OS.get_environment("BYTEWORLD_AUTOTEST_BRIDGE_PORT")
 	var force_auto := OS.get_environment("BYTEWORLD_AUTOTEST_BRIDGE_AUTOPORT") == "1"
+	var bind_addr := OS.get_environment("BYTEWORLD_AUTOTEST_BRIDGE_BIND")
+	if bind_addr.is_empty():
+		bind_addr = BIND_DEFAULT
 	var want := PORT_DEFAULT
 	if not explicit.is_empty():
 		want = int(explicit)
 	elif force_auto:
 		want = 0
 	_tcp = TCPServer.new()
-	if _tcp.listen(want) != OK:
+	if _tcp.listen(want, bind_addr) != OK:
 		if not explicit.is_empty():
 			# 调用方明确要这个口：响亮失败，不静默改端口（掩盖冲突比失败更糟）
 			BwLog.warn(TAG, "@BRIDGE listen failed port=%d（显式指定，不重试；端口被占？）" % want)
@@ -69,14 +77,14 @@ func _ready() -> void:
 		# 缺省口被占（多实例第二个窗口）⇒ 自动 bind：操作系统分配空闲端口
 		BwLog.info(TAG, "@BRIDGE port %d occupied, fallback to auto-bind" % want)
 		_tcp = TCPServer.new()
-		if _tcp.listen(0) != OK:
+		if _tcp.listen(0, bind_addr) != OK:
 			BwLog.warn(TAG, "@BRIDGE auto-bind failed")
 			set_process(false)
 			return
 	_active = true
 	_port = _tcp.get_local_port()
 	_write_port_file()
-	BwLog.info(TAG, "@BRIDGE ready port=%d file=%s" % [_port, _port_file])
+	BwLog.info(TAG, "@BRIDGE ready port=%d bind=%s file=%s" % [_port, bind_addr, _port_file])
 
 
 func _exit_tree() -> void:
