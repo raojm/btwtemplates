@@ -177,11 +177,20 @@ func _status() -> Dictionary:
 		sz = vp.get_visible_rect().size
 	# ★ 2026-11-04（journey R5）：玩家 Position 进 status（移动类判据的数据侧观测面；
 	#   bootstrap 未就绪/未建玩家时缺省 null，不阻断原字段）。
+	# ★ 2026-11-06（T77）：SHM 模式下本地桩已改名 input_stub，`get_entity_uid("player")`
+	#   恒 0。窗口要观测会话真玩家需知 uin（host 在 GAME_LOADED(13) 回执尾随 u64）；
+	#   仅当 uin != 0 时才用 uid=(1<<48)|uin 解析，uin=0 保持诚实 null（不回退假 [0,0,0]）。
 	var player_pos = null
+	var player_uin := 0
 	var h = EcsHelper.get_instance()
 	if h != null:
 		var pcid := int(h.find_component_id("builtin.Position"))
 		var uid := int(h.get_entity_uid("player"))
+		if uid <= 0 and OS.get_environment("BYTEWORLD_SHM_MODE") == "1" \
+				and h.has_method("get_game_loaded_uin"):
+			player_uin = int(h.get_game_loaded_uin())
+			if player_uin > 0:
+				uid = (1 << 48) | player_uin
 		if pcid >= 0 and uid > 0:
 			var raw: PackedByteArray = h.get_component_data(uid, pcid)
 			if raw.size() >= 24:
@@ -191,6 +200,7 @@ func _status() -> Dictionary:
 		"fps": Engine.get_frames_per_second(),
 		"nodes": get_tree().get_node_count() if get_tree() != null else 0,
 		"viewport": [sz.x, sz.y],
+		"playerUin": player_uin,
 		"playerPosition": player_pos,
 	}
 
