@@ -327,6 +327,17 @@ func _cmd_input(req: Dictionary) -> Dictionary:
 		kev.pressed = down
 		Input.parse_input_event(kev)
 		return {"ok": true, "kind": "key", "keycode": kc, "pressed": down}
+	# ★ T85：摇杆是连续量，宿主只在 MouseMotion 里算 axis ⇒ 纯 press/release 测不了
+	#   手机移动。`{op:"input", kind:"motion", x, y, dx, dy, button_mask}` 注入拖动，
+	#   button_mask=1 让 Godot 把 motion 路由给 mouse_focus（与真实拖动同一路径）。
+	if str(req.get("kind", "mouse")) == "motion":
+		var mev := InputEventMouseMotion.new()
+		mev.position = Vector2(float(req.get("x", 0)), float(req.get("y", 0)))
+		mev.global_position = mev.position
+		mev.relative = Vector2(float(req.get("dx", 0)), float(req.get("dy", 0)))
+		mev.button_mask = int(req.get("button_mask", 1))
+		Input.parse_input_event(mev)
+		return {"ok": true, "kind": "motion", "x": mev.position.x, "y": mev.position.y}
 	var ev := InputEventMouseButton.new()
 	ev.button_index = btn
 	ev.pressed = down
@@ -366,11 +377,18 @@ func _cdp(req: Dictionary) -> Dictionary:
 			return {"id": id, "result": {"quads": quads}}
 		"Input.dispatchMouseEvent":
 			var t := str(params.get("type", "mousePressed"))
+			var cx := float(params.get("x", 0))
+			var cy := float(params.get("y", 0))
+			# T85：mouseMoved 必须映射成 motion，不能当成又一次 press。
+			if t == "mouseMoved":
+				return {"id": id, "result": _cmd_input({
+					"x": cx, "y": cy, "kind": "motion", "button_mask": 1,
+					"dx": float(params.get("dx", 0)), "dy": float(params.get("dy", 0)),
+				})}
 			var pressed := t != "mouseReleased"
 			var btn := 1 if str(params.get("button", "left")) == "left" else 3
 			return {"id": id, "result": _cmd_input({
-				"x": float(params.get("x", 0)), "y": float(params.get("y", 0)),
-				"button": btn, "pressed": pressed,
+				"x": cx, "y": cy, "button": btn, "pressed": pressed,
 			})}
 		"Page.reload":
 			var tree := get_tree()
