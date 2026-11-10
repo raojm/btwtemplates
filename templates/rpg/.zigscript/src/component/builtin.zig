@@ -82,6 +82,12 @@ pub const EditOpLog = shared.EditOpLog;
 pub const EditOpVerb = shared.EditOpVerb;
 pub const EditOpResult = shared.EditOpResult;
 pub const PersistOnlyTag = shared.PersistOnlyTag;
+pub const EditAuditQueryRequest = shared.EditAuditQueryRequest;
+pub const EditAuditQueryResponse = shared.EditAuditQueryResponse;
+pub const EditAuditResult = shared.EditAuditResult;
+pub const SchemaEpoch = shared.SchemaEpoch;
+pub const SchemaPatchRecord = shared.SchemaPatchRecord;
+pub const SchemaNegotiateResponse = shared.SchemaNegotiateResponse;
 pub const Color = shared.Color;
 
 // ---- basic 模板私有扩展 ----
