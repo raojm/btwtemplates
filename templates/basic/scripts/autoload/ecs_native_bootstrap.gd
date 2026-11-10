@@ -64,6 +64,9 @@ var _cid := {}
 var _boot_done := false
 var _last_input_mask: int = -1
 
+## F-J9-10 绑定轮询参数：场景实体晚于 world-ready 灌入 ⇒ 首查失败后等这么久（~2.5s @60fps）。
+const _BindPollFrames := 150
+
 func _ready() -> void:
 	if Engine.is_editor_hint() and OS.get_environment("BYTEWORLD_BOOTSTRAP_IN_EDITOR") != "1":
 		set_process(false)
@@ -118,8 +121,26 @@ func _boot() -> void:
 	_ensure_step_clock()
 	# ★ F-J7-16 S5：作者在场景里摆了标成本地玩家的角色（挂 framesync.PlayerInput）
 	#   ⇒ 绑它当本地玩家，**不再派生影子实体**（与编辑器播放驱动同一作者契约）。
+	#   ★ F-J9-10（journey R9 实证）：tscn-free 档的场景实体由 SceneUiUploader 在
+	#   world-ready **之后**异步灌入（引擎窗日志：bootstrap spawn 先于 entities=4）⇒
+	#   立即查 820 恒空、恒走派生影子。改为：首查失败且场景文件确实摆了 820 时，
+	#   有界轮询（~2.5s）等实体出现；轮询窗口内**不先建影子**（避免 stub 的 820
+	#   抢先被 find 命中）。没摆角色的工程零延迟直落派生路径。
 	if _try_bind_scene_player():
 		pass
+	elif _scene_json_has_player_input():
+		var bound := false
+		for _i in range(_BindPollFrames):
+			if not is_inside_tree():
+				return
+			await get_tree().process_frame
+			if _try_bind_scene_player():
+				bound = true
+				break
+		if not bound:
+			BwLog.warn(TAG, "场景含 framesync.PlayerInput 但 %d 帧内未出现该实体（SceneUiUploader 未灌入？）—— 退回派生玩家" % _BindPollFrames)
+			_spawn_local_player()
+			_ensure_local_player_uid()
 	else:
 		_spawn_local_player()
 		_ensure_local_player_uid()
@@ -180,6 +201,7 @@ func _ensure_step_clock() -> void:
 ## 作者契约：把 `framesync.PlayerInput`(zig 820) 挂到场景里某条实体 = 「这条就是玩家」。
 ## 编辑器播放（wasm）早已按这条契约 bind；这里补上 **native/Godot 档**（dylib 播放）。
 ##
+##
 ## 三条守卫（缺一条就会出事）：
 ##  ① `has_method`：老扩展没有 `find_entity_with_component` / `bind_local_player_uid`
 ##     ⇒ 退回旧的派生路径（行为与今天完全一致，不再「摆了角色却没人动」地卡死）。
@@ -187,6 +209,32 @@ func _ensure_step_clock() -> void:
 ##     绑它等于绑影子实体，多端时甚至可能绑到队友（编辑器的同款选主规则里记过这个假红）。
 ##  ③ bind 必须被受理：SHM 档 lpu 权威在 host world ⇒ 适配器明确拒绝（留痕），
 ##     此时退回派生路径，不是静默继续。
+
+## F-J9-10：场景文件里是否真的摆了「挂 framesync.PlayerInput(820)」的实体。
+## 只用于决定「要不要花 ~2.5s 轮询等 SceneUiUploader 灌入」——没摆的工程零延迟。
+## 读 `BW_UI_SCENE_JSON`（res:// 或绝对路径皆可；pck 档 res:// 指向包内，同样可读）。
+## 组件键用字符串 id（bwscene components 以 id 为键，framesync.PlayerInput 恒 820）。
+func _scene_json_has_player_input() -> bool:
+	var path := OS.get_environment("BW_UI_SCENE_JSON")
+	if path.is_empty():
+		return false
+	if not FileAccess.file_exists(path):
+		return false
+	var f := FileAccess.open(path, FileAccess.READ)
+	if f == null:
+		return false
+	var parsed = JSON.parse_string(f.get_as_text())
+	f.close()
+	if not (parsed is Dictionary):
+		return false
+	var ents = parsed.get("entities", [])
+	if not (ents is Array):
+		return false
+	for ent in ents:
+		if ent is Dictionary and (ent.get("components", {}) as Dictionary).has("820"):
+			return true
+	return false
+
 func _try_bind_scene_player() -> bool:
 	if not (_helper.has_method("find_entity_with_component") and _helper.has_method("bind_local_player_uid")):
 		return false

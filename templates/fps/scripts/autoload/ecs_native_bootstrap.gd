@@ -62,6 +62,10 @@ var bound_scene_uid: int = 0
 var _player_node: Node3D = null
 var _cid := {}
 var _boot_done := false
+var _last_input_mask: int = -1
+
+## F-J9-10 绑定轮询参数：场景实体晚于 world-ready 灌入 ⇒ 首查失败后等这么久（~2.5s @60fps）。
+const _BindPollFrames := 150
 
 func _ready() -> void:
 	if Engine.is_editor_hint() and OS.get_environment("BYTEWORLD_BOOTSTRAP_IN_EDITOR") != "1":
@@ -80,6 +84,11 @@ func local_uin() -> int:
 		if raw.is_valid_int() and int(raw) > 0:
 			return int(raw)
 	return 1
+
+## SHM 联机模式（BYTEWORLD_SHM_MODE=1）：host 权威跑系统、本窗只镜像；
+## 本地桩降级为输入上行载体（改名 input_stub）。
+func _is_shm_mode() -> bool:
+	return OS.get_environment("BYTEWORLD_SHM_MODE") == "1"
 
 func player_uid() -> int:
 	return _player_uid
@@ -112,8 +121,26 @@ func _boot() -> void:
 	_ensure_step_clock()
 	# ★ F-J7-16 S5：作者在场景里摆了标成本地玩家的角色（挂 framesync.PlayerInput）
 	#   ⇒ 绑它当本地玩家，**不再派生影子实体**（与编辑器播放驱动同一作者契约）。
+	#   ★ F-J9-10（journey R9 实证）：tscn-free 档的场景实体由 SceneUiUploader 在
+	#   world-ready **之后**异步灌入（引擎窗日志：bootstrap spawn 先于 entities=4）⇒
+	#   立即查 820 恒空、恒走派生影子。改为：首查失败且场景文件确实摆了 820 时，
+	#   有界轮询（~2.5s）等实体出现；轮询窗口内**不先建影子**（避免 stub 的 820
+	#   抢先被 find 命中）。没摆角色的工程零延迟直落派生路径。
 	if _try_bind_scene_player():
 		pass
+	elif _scene_json_has_player_input():
+		var bound := false
+		for _i in range(_BindPollFrames):
+			if not is_inside_tree():
+				return
+			await get_tree().process_frame
+			if _try_bind_scene_player():
+				bound = true
+				break
+		if not bound:
+			BwLog.warn(TAG, "场景含 framesync.PlayerInput 但 %d 帧内未出现该实体（SceneUiUploader 未灌入？）—— 退回派生玩家" % _BindPollFrames)
+			_spawn_local_player()
+			_ensure_local_player_uid()
 	else:
 		_spawn_local_player()
 		_ensure_local_player_uid()
@@ -174,6 +201,7 @@ func _ensure_step_clock() -> void:
 ## 作者契约：把 `framesync.PlayerInput`(zig 820) 挂到场景里某条实体 = 「这条就是玩家」。
 ## 编辑器播放（wasm）早已按这条契约 bind；这里补上 **native/Godot 档**（dylib 播放）。
 ##
+##
 ## 三条守卫（缺一条就会出事）：
 ##  ① `has_method`：老扩展没有 `find_entity_with_component` / `bind_local_player_uid`
 ##     ⇒ 退回旧的派生路径（行为与今天完全一致，不再「摆了角色却没人动」地卡死）。
@@ -181,6 +209,32 @@ func _ensure_step_clock() -> void:
 ##     绑它等于绑影子实体，多端时甚至可能绑到队友（编辑器的同款选主规则里记过这个假红）。
 ##  ③ bind 必须被受理：SHM 档 lpu 权威在 host world ⇒ 适配器明确拒绝（留痕），
 ##     此时退回派生路径，不是静默继续。
+
+## F-J9-10：场景文件里是否真的摆了「挂 framesync.PlayerInput(820)」的实体。
+## 只用于决定「要不要花 ~2.5s 轮询等 SceneUiUploader 灌入」——没摆的工程零延迟。
+## 读 `BW_UI_SCENE_JSON`（res:// 或绝对路径皆可；pck 档 res:// 指向包内，同样可读）。
+## 组件键用字符串 id（bwscene components 以 id 为键，framesync.PlayerInput 恒 820）。
+func _scene_json_has_player_input() -> bool:
+	var path := OS.get_environment("BW_UI_SCENE_JSON")
+	if path.is_empty():
+		return false
+	if not FileAccess.file_exists(path):
+		return false
+	var f := FileAccess.open(path, FileAccess.READ)
+	if f == null:
+		return false
+	var parsed = JSON.parse_string(f.get_as_text())
+	f.close()
+	if not (parsed is Dictionary):
+		return false
+	var ents = parsed.get("entities", [])
+	if not (ents is Array):
+		return false
+	for ent in ents:
+		if ent is Dictionary and (ent.get("components", {}) as Dictionary).has("820"):
+			return true
+	return false
+
 func _try_bind_scene_player() -> bool:
 	if not (_helper.has_method("find_entity_with_component") and _helper.has_method("bind_local_player_uid")):
 		return false
@@ -199,8 +253,9 @@ func _try_bind_scene_player() -> bool:
 		return false
 	_player_uid = uid
 	bound_scene_uid = uid
-	_helper.register_entity_uid("player", _player_uid)
-	BwLog.info(TAG, "entity name: player → 0x%X（回读 %d）" % [_player_uid, _helper.get_entity_uid("player")])
+	var player_name := "input_stub" if _is_shm_mode() else "player"
+	_helper.register_entity_uid(player_name, _player_uid)
+	BwLog.info(TAG, "entity name: %s → 0x%X（回读 %d）" % [player_name, _player_uid, _helper.get_entity_uid(player_name)])
 	BwLog.info(TAG, "★ 场景实体 0x%X 挂 framesync.PlayerInput ⇒ 绑为本地玩家（不派生影子实体）" % uid)
 	return true
 
@@ -234,9 +289,15 @@ func _spawn_local_player() -> void:
 			% [_player_uid, uin, hp, str(written)])
 
 	# ③ 名字绑定（绑定规则/探针按名字取 uid 的唯一来源）
-	_helper.register_entity_uid("player", _player_uid)
-	BwLog.info(TAG, "entity name: player → 0x%X（回读 %d）"
-		% [_player_uid, _helper.get_entity_uid("player")])
+	# ★ T77④（journey R5）：SHM 模式下本地桩改名 "input_stub"——SHM 架构 = host
+	#   权威跑系统、窗口镜像，服务器同步的会话玩家（uid=(1<<48)|会话uin）才是真
+	#   "player"；本地桩只是**输入上行载体**（keys_pressed 变化 → 上传）。若沿用
+	#   "player" 名，桥/绑定的 playerPosition 会读到本地桩的假 [0,0,0]，遮蔽服务
+	#   器真玩家（journey 实测：本地 [0,0,0] vs host z=-18）。非 SHM 档行为不变。
+	var player_name := "input_stub" if _is_shm_mode() else "player"
+	_helper.register_entity_uid(player_name, _player_uid)
+	BwLog.info(TAG, "entity name: %s → 0x%X（回读 %d）"
+		% [player_name, _player_uid, _helper.get_entity_uid(player_name)])
 
 # 初始 HP：与游戏侧同一份宿主契约（`BW_GAME_INIT_PARAMS` 的 player_hp，只认 >0 整数）。
 # 两边各写死一个默认值 ⇒ 本引导先建实体时会把注入值覆盖掉（FPSDemo 踩过）。
@@ -328,6 +389,15 @@ func _find_first(node: Node, cls: String) -> Node:
 func _process(_delta: float) -> void:
 	if not _boot_done or _player_node == null or _player_uid == 0:
 		return
+	# E. 输入 → framesync.PlayerInput.keys_pressed（★ F-J5-7 接线：此前钩子悬空——
+	#    _input_keys_mask() 定义了却没有任何消费点，覆写毫无效果。变化才写避免每帧标脏；
+	#    未启用 framesync 模块（无该组件）时静默跳过 = 行为与旧版一致）。
+	var input_cid := int(_cid.get("framesync.PlayerInput", -1))
+	if input_cid >= 0:
+		var mask := _input_keys_mask()
+		if mask != _last_input_mask:
+			_last_input_mask = mask
+			_helper.add_component(_player_uid, input_cid, {"keys_pressed": mask})
 	var cid := int(_cid.get("builtin.Position", -1))
 	if cid < 0:
 		return
@@ -342,13 +412,27 @@ func _process(_delta: float) -> void:
 
 # ── 游戏侧扩展点（子类/同名覆写均可；此处给出空实现与契约）─────────────────
 ## 追加到 stub 玩家上的组件：{ "组件名": {字段: 值}, ... }。未注册的组件会自动跳过。
+## ★ 2026-11-04（journey R5）：默认带 framesync.PlayerInput（keys_pressed 位掩码由
+##   _process 消费 _input_keys_mask() 写入）。未启用 framesync 模块时组件不存在，
+##   _collect_component_ids 会记 warn 并跳过 = 行为与旧版一致。
 func _extra_player_components() -> Dictionary:
-	return {}
+	return { "framesync.PlayerInput": {"keys_pressed": 0, "action_pressed": 0} }
 
 ## 本帧要写进 `framesync.PlayerInput.keys_pressed` 的位掩码（无该组件时不生效）。
-## 默认 0 = 不驱动输入；需要键盘驱动的游戏在子类里覆写。
+## ★ 2026-11-04（journey R5）：默认实现 = 读 WASD（位定义对齐 framesync.PlayerInput
+##   KEY_W/A/S/D = bit0..3）。模板启用 framesync 模块（game.json `modules`）后
+##   「播起来即可键盘移动」；要自定义输入就覆写本函数（_process 每帧消费，变化才写）。
 func _input_keys_mask() -> int:
-	return 0
+	var mask := 0
+	if Input.is_physical_key_pressed(KEY_W):
+		mask |= 1
+	if Input.is_physical_key_pressed(KEY_A):
+		mask |= 2
+	if Input.is_physical_key_pressed(KEY_S):
+		mask |= 4
+	if Input.is_physical_key_pressed(KEY_D):
+		mask |= 8
+	return mask
 
 func _add(comp_name: String, data: Dictionary) -> bool:
 	var cid := int(_cid.get(comp_name, -1))
