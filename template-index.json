@@ -6,76 +6,76 @@
     {
       "id": "basic",
       "name": "Basic ECS",
-      "description": "基础 ECS 架构，包含登录/移动/输入处理/视图同步（L1 模块默认不启用）",
+      "description": "基础 ECS 架构（纯净起点：登录/移动/输入等玩法能力按需添加——L1 模块与玩法系统默认不启用）",
       "author": "ByteWorld",
-      "version": "2.0.8",
+      "version": "2.0.9",
       "min_engine_version": "4.6",
       "tags": [
         "basic",
         "ecs"
       ],
-      "download_url": "https://github.com/raojm/btwtemplates/releases/download/basic-v2.0.8/basic.zip",
-      "checksum": "37e6055b6be0cbd37776fc4569ade29373cd2d062a8038b4b852a44d1153592c"
+      "download_url": "https://github.com/raojm/btwtemplates/releases/download/basic-v2.0.9/basic.zip",
+      "checksum": "46a58fb8143458baff246d2a059c906b7cbd2e9d790d7322ffa931a5609a1f35"
     },
     {
       "id": "combo",
       "name": "Combo Demo",
       "description": "全模块组合演示（聊天 + 任务，演示 L1 模块可叠加）",
       "author": "ByteWorld",
-      "version": "1.0.7",
+      "version": "1.0.8",
       "min_engine_version": "4.6",
       "tags": [
         "combo",
         "demo",
         "all-modules"
       ],
-      "download_url": "https://github.com/raojm/btwtemplates/releases/download/combo-v1.0.7/combo.zip",
-      "checksum": "70496af6da4e79220810ede29bd0956ec23f540bd157208f1975a8100e15015d"
+      "download_url": "https://github.com/raojm/btwtemplates/releases/download/combo-v1.0.8/combo.zip",
+      "checksum": "e8daa2e1d03fa4b2510550d491fb5adda146604d796c95f147a7c9b5d24205d4"
     },
     {
       "id": "fps",
       "name": "FPS Lockstep",
       "description": "FPS 射击游戏（帧同步 lockstep 模块）",
       "author": "ByteWorld",
-      "version": "1.0.7",
+      "version": "1.0.8",
       "min_engine_version": "4.6",
       "tags": [
         "fps",
         "shooter",
         "lockstep"
       ],
-      "download_url": "https://github.com/raojm/btwtemplates/releases/download/fps-v1.0.7/fps.zip",
-      "checksum": "e338c620d997167f2761ddaaaeb61dc6cdc1a112016de4183a20ee4b45b41938"
+      "download_url": "https://github.com/raojm/btwtemplates/releases/download/fps-v1.0.8/fps.zip",
+      "checksum": "e15bdc3560e9dca24bd818cc65818af84a434edde6d2b9d5afa00e127919ca4b"
     },
     {
       "id": "room",
       "name": "Room Multiplayer",
       "description": "多人房间游戏：世界聊天（房间/桌子模块待 P5 后追加）",
       "author": "ByteWorld",
-      "version": "1.0.7",
+      "version": "1.0.8",
       "min_engine_version": "4.6",
       "tags": [
         "room",
         "multiplayer",
         "chat"
       ],
-      "download_url": "https://github.com/raojm/btwtemplates/releases/download/room-v1.0.7/room.zip",
-      "checksum": "df363557ce2c0c91fec517ce5d726143611db8b46682634d7923eb853fb1fd91"
+      "download_url": "https://github.com/raojm/btwtemplates/releases/download/room-v1.0.8/room.zip",
+      "checksum": "ebb5587c09bafdb63c55c778202514d600a57507a8533eea955dfb353c85e7cd"
     },
     {
       "id": "rpg",
       "name": "RPG Quest",
       "description": "RPG 角色扮演：任务状态机 + 聊天",
       "author": "ByteWorld",
-      "version": "1.0.7",
+      "version": "1.0.8",
       "min_engine_version": "4.6",
       "tags": [
         "rpg",
         "quest",
         "chat"
       ],
-      "download_url": "https://github.com/raojm/btwtemplates/releases/download/rpg-v1.0.7/rpg.zip",
-      "checksum": "b3916a22b0ab62af5996ac581eb4df430d949f99006b7bc3c0731306218fd3b8"
+      "download_url": "https://github.com/raojm/btwtemplates/releases/download/rpg-v1.0.8/rpg.zip",
+      "checksum": "adb20eafb05844fb9a606657e2cdab2d08eda05cf418cdbe5974b34df6efe8a4"
     }
   ]
 }
