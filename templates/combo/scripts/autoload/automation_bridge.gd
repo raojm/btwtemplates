@@ -218,6 +218,12 @@ func _status() -> Dictionary:
 			var raw: PackedByteArray = h.get_component_data(uid, pcid)
 			if raw.size() >= 24:
 				player_pos = [raw.decode_s64(0) / 4294967296.0, raw.decode_s64(8) / 4294967296.0, raw.decode_s64(16) / 4294967296.0]
+	# ★ 2026-11-11（F-J7-16 S5）：作者把场景里某条实体标成本地玩家时，绑定命中的 uid。
+	#   0 = 未命中（走派生路径，行为与旧版一致）⇒ 判据可分辨「摆了角色但没绑上」与「没摆角色」。
+	var bind_uid := 0
+	var boot = get_node_or_null("/root/EcsNativeBootstrap")
+	if boot != null and boot.get("bound_scene_uid") != null:
+		bind_uid = int(boot.bound_scene_uid)
 	return {
 		"ok": true, "port": _port,
 		"fps": Engine.get_frames_per_second(),
@@ -225,6 +231,7 @@ func _status() -> Dictionary:
 		"viewport": [sz.x, sz.y],
 		"playerUin": player_uin,
 		"playerPosition": player_pos,
+		"bindUid": bind_uid,
 	}
 
 

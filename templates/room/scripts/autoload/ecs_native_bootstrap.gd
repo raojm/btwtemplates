@@ -57,6 +57,8 @@ signal bootstrap_failed(reason: String)
 
 var _helper = null
 var _player_uid: int = 0
+## 场景实体选主命中的 uid（0 = 未命中，走派生路径）。自动化桥 `status.bindUid` 读它。
+var bound_scene_uid: int = 0
 var _player_node: Node3D = null
 var _cid := {}
 var _boot_done := false
@@ -196,6 +198,7 @@ func _try_bind_scene_player() -> bool:
 		BwLog.warn(TAG, "场景实体 0x%X 的 bind 未被受理（SHM 档不适用 / 未 join_game）—— 退回派生玩家" % uid)
 		return false
 	_player_uid = uid
+	bound_scene_uid = uid
 	_helper.register_entity_uid("player", _player_uid)
 	BwLog.info(TAG, "entity name: player → 0x%X（回读 %d）" % [_player_uid, _helper.get_entity_uid("player")])
 	BwLog.info(TAG, "★ 场景实体 0x%X 挂 framesync.PlayerInput ⇒ 绑为本地玩家（不派生影子实体）" % uid)
