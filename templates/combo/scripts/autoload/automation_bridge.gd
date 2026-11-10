@@ -167,7 +167,30 @@ func _dispatch(req: Dictionary) -> Dictionary:
 		"screenshot": return _screenshot(req)
 		"query": return _query(req)
 		"input": return _cmd_input(req)
+		"key": return _cmd_key(req)
 		_: return {"ok": false, "error": "unknown op: %s" % str(req.get("op"))}
+
+
+# ---- 键盘注入（2026-11-10 journey R8，F-J7-18）----
+# macOS/CI 无 OS 级免焦点键盘注入（System Events 需焦点且实测会被拒；CGEventPost
+# 需权限）⇒ 引擎内合成是唯一可靠自动化路径。req:
+#   { op:"key", code:"W"（Godot 键名，如 W/A/S/D/SPACE/ESCAPE）, pressed:true|false }
+# 与 op="input" 同管线（Input.parse_input_event）——引擎 bootstrap 的
+# _input_keys_mask() 与一切 InputMap 动作照常响应。
+func _cmd_key(req: Dictionary) -> Dictionary:
+	var code_name := str(req.get("code", ""))
+	if code_name.is_empty():
+		return {"ok": false, "error": "missing code（如 \"W\"/\"A\"/\"SPACE\"）"}
+	var kc := OS.find_keycode_from_string(code_name)
+	if kc == KEY_NONE:
+		return {"ok": false, "error": "unknown keycode: %s" % code_name}
+	var down := bool(req.get("pressed", true))
+	var kev := InputEventKey.new()
+	kev.keycode = kc
+	kev.physical_keycode = kc
+	kev.pressed = down
+	Input.parse_input_event(kev)
+	return {"ok": true, "kind": "key", "code": code_name, "pressed": down}
 
 
 func _status() -> Dictionary:
@@ -175,11 +198,33 @@ func _status() -> Dictionary:
 	var sz := Vector2i.ZERO
 	if vp != null:
 		sz = vp.get_visible_rect().size
+	# ★ 2026-11-04（journey R5）：玩家 Position 进 status（移动类判据的数据侧观测面；
+	#   bootstrap 未就绪/未建玩家时缺省 null，不阻断原字段）。
+	# ★ 2026-11-06（T77）：SHM 模式下本地桩已改名 input_stub，`get_entity_uid("player")`
+	#   恒 0。窗口要观测会话真玩家需知 uin（host 在 GAME_LOADED(13) 回执尾随 u64）；
+	#   仅当 uin != 0 时才用 uid=(1<<48)|uin 解析，uin=0 保持诚实 null（不回退假 [0,0,0]）。
+	var player_pos = null
+	var player_uin := 0
+	var h = EcsHelper.get_instance()
+	if h != null:
+		var pcid := int(h.find_component_id("builtin.Position"))
+		var uid := int(h.get_entity_uid("player"))
+		if uid <= 0 and OS.get_environment("BYTEWORLD_SHM_MODE") == "1" \
+				and h.has_method("get_game_loaded_uin"):
+			player_uin = int(h.get_game_loaded_uin())
+			if player_uin > 0:
+				uid = (1 << 48) | player_uin
+		if pcid >= 0 and uid > 0:
+			var raw: PackedByteArray = h.get_component_data(uid, pcid)
+			if raw.size() >= 24:
+				player_pos = [raw.decode_s64(0) / 4294967296.0, raw.decode_s64(8) / 4294967296.0, raw.decode_s64(16) / 4294967296.0]
 	return {
 		"ok": true, "port": _port,
 		"fps": Engine.get_frames_per_second(),
 		"nodes": get_tree().get_node_count() if get_tree() != null else 0,
 		"viewport": [sz.x, sz.y],
+		"playerUin": player_uin,
+		"playerPosition": player_pos,
 	}
 
 
@@ -293,6 +338,29 @@ func _cmd_input(req: Dictionary) -> Dictionary:
 	#   Godot 惯例左键=1；CDP 兼容层已负责 "left"→1 换算。
 	if btn < 1 or btn > 9:
 		return {"ok": false, "error": "invalid button %d（Godot 惯例：1=左 2=右；CDP 兼容层传 \"left\"/\"right\" 自动换算）" % btn}
+	# ★ 2026-11-04（journey R5）：kind="key" = 键盘注入（InputEventKey.physical_keycode，
+	#   对齐 _input_keys_mask 的 Input.is_physical_key_pressed 读数）。缺省仍是鼠标。
+	if str(req.get("kind", "mouse")) == "key":
+		var kc := int(req.get("keycode", 0))
+		if kc <= 0:
+			return {"ok": false, "error": "kind=key 需要 keycode（Godot KEY_*，如 W=87 A=65 S=83 D=68）"}
+		var kev := InputEventKey.new()
+		kev.physical_keycode = kc as Key
+		kev.keycode = kc as Key
+		kev.pressed = down
+		Input.parse_input_event(kev)
+		return {"ok": true, "kind": "key", "keycode": kc, "pressed": down}
+	# ★ T85：摇杆是连续量，宿主只在 MouseMotion 里算 axis ⇒ 纯 press/release 测不了
+	#   手机移动。`{op:"input", kind:"motion", x, y, dx, dy, button_mask}` 注入拖动，
+	#   button_mask=1 让 Godot 把 motion 路由给 mouse_focus（与真实拖动同一路径）。
+	if str(req.get("kind", "mouse")) == "motion":
+		var mev := InputEventMouseMotion.new()
+		mev.position = Vector2(float(req.get("x", 0)), float(req.get("y", 0)))
+		mev.global_position = mev.position
+		mev.relative = Vector2(float(req.get("dx", 0)), float(req.get("dy", 0)))
+		mev.button_mask = int(req.get("button_mask", 1))
+		Input.parse_input_event(mev)
+		return {"ok": true, "kind": "motion", "x": mev.position.x, "y": mev.position.y}
 	var ev := InputEventMouseButton.new()
 	ev.button_index = btn
 	ev.pressed = down
@@ -332,11 +400,18 @@ func _cdp(req: Dictionary) -> Dictionary:
 			return {"id": id, "result": {"quads": quads}}
 		"Input.dispatchMouseEvent":
 			var t := str(params.get("type", "mousePressed"))
+			var cx := float(params.get("x", 0))
+			var cy := float(params.get("y", 0))
+			# T85：mouseMoved 必须映射成 motion，不能当成又一次 press。
+			if t == "mouseMoved":
+				return {"id": id, "result": _cmd_input({
+					"x": cx, "y": cy, "kind": "motion", "button_mask": 1,
+					"dx": float(params.get("dx", 0)), "dy": float(params.get("dy", 0)),
+				})}
 			var pressed := t != "mouseReleased"
 			var btn := 1 if str(params.get("button", "left")) == "left" else 3
 			return {"id": id, "result": _cmd_input({
-				"x": float(params.get("x", 0)), "y": float(params.get("y", 0)),
-				"button": btn, "pressed": pressed,
+				"x": cx, "y": cy, "button": btn, "pressed": pressed,
 			})}
 		"Page.reload":
 			var tree := get_tree()

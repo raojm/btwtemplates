@@ -2,7 +2,7 @@
 	"name": "Room Multiplayer",
 	"description": "多人房间游戏：世界聊天（房间/桌子模块待 P5 后追加）",
 	"author": "ByteWorld",
-	"version": "1.0.4",
+	"version": "1.0.5",
 	"min_engine_version": "4.6",
 	"tags": [
 		"room",
