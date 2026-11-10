@@ -167,7 +167,30 @@ func _dispatch(req: Dictionary) -> Dictionary:
 		"screenshot": return _screenshot(req)
 		"query": return _query(req)
 		"input": return _cmd_input(req)
+		"key": return _cmd_key(req)
 		_: return {"ok": false, "error": "unknown op: %s" % str(req.get("op"))}
+
+
+# ---- 键盘注入（2026-11-10 journey R8，F-J7-18）----
+# macOS/CI 无 OS 级免焦点键盘注入（System Events 需焦点且实测会被拒；CGEventPost
+# 需权限）⇒ 引擎内合成是唯一可靠自动化路径。req:
+#   { op:"key", code:"W"（Godot 键名，如 W/A/S/D/SPACE/ESCAPE）, pressed:true|false }
+# 与 op="input" 同管线（Input.parse_input_event）——引擎 bootstrap 的
+# _input_keys_mask() 与一切 InputMap 动作照常响应。
+func _cmd_key(req: Dictionary) -> Dictionary:
+	var code_name := str(req.get("code", ""))
+	if code_name.is_empty():
+		return {"ok": false, "error": "missing code（如 \"W\"/\"A\"/\"SPACE\"）"}
+	var kc := OS.find_keycode_from_string(code_name)
+	if kc == KEY_NONE:
+		return {"ok": false, "error": "unknown keycode: %s" % code_name}
+	var down := bool(req.get("pressed", true))
+	var kev := InputEventKey.new()
+	kev.keycode = kc
+	kev.physical_keycode = kc
+	kev.pressed = down
+	Input.parse_input_event(kev)
+	return {"ok": true, "kind": "key", "code": code_name, "pressed": down}
 
 
 func _status() -> Dictionary:
