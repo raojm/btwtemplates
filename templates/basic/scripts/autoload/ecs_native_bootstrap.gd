@@ -114,8 +114,13 @@ func _boot() -> void:
 
 	_collect_component_ids()
 	_ensure_step_clock()
-	_spawn_local_player()
-	_ensure_local_player_uid()
+	# ★ F-J7-16 S5：作者在场景里摆了标成本地玩家的角色（挂 framesync.PlayerInput）
+	#   ⇒ 绑它当本地玩家，**不再派生影子实体**（与编辑器播放驱动同一作者契约）。
+	if _try_bind_scene_player():
+		pass
+	else:
+		_spawn_local_player()
+		_ensure_local_player_uid()
 	if OS.get_environment("BYTEWORLD_BOOTSTRAP_VISUAL") != "0":
 		_ensure_visual()
 
@@ -168,6 +173,41 @@ func _ensure_step_clock() -> void:
 		BwLog.info(TAG, "StepClock.step_delta_ms 0 → %d（否则 Position 永不推进）" % STEP_DELTA_MS)
 
 # ── ② 建通用 stub 玩家 ─────────────────────────────────────────────────────
+## ── 场景实体选主（F-J7-16 S5）─────────────────────────────────────────────
+##
+## 作者契约：把 `framesync.PlayerInput`(zig 820) 挂到场景里某条实体 = 「这条就是玩家」。
+## 编辑器播放（wasm）早已按这条契约 bind；这里补上 **native/Godot 档**（dylib 播放）。
+##
+## 三条守卫（缺一条就会出事）：
+##  ① `has_method`：老扩展没有 `find_entity_with_component` / `bind_local_player_uid`
+##     ⇒ 退回旧的派生路径（行为与今天完全一致，不再「摆了角色却没人动」地卡死）。
+##  ② **只认场景命名空间**：uid 高位 16-bit = 实体类型，`UIN=1` 的是内核派生/远端玩家。
+##     绑它等于绑影子实体，多端时甚至可能绑到队友（编辑器的同款选主规则里记过这个假红）。
+##  ③ bind 必须被受理：SHM 档 lpu 权威在 host world ⇒ 适配器明确拒绝（留痕），
+##     此时退回派生路径，不是静默继续。
+func _try_bind_scene_player() -> bool:
+	if not (_helper.has_method("find_entity_with_component") and _helper.has_method("bind_local_player_uid")):
+		return false
+	var cid := int(_cid.get("framesync.PlayerInput", -1))
+	if cid < 0:
+		return false
+	var uid := int(_helper.find_entity_with_component(cid))
+	if uid == 0:
+		return false
+	var type_id := (uid >> UID_TYPE_SHIFT) & 0xFFFF
+	if type_id == UID_TYPE_UIN:
+		# 内核派生/远端玩家 —— 不是作者摆的那条
+		return false
+	if not bool(_helper.bind_local_player_uid(uid)):
+		BwLog.warn(TAG, "场景实体 0x%X 的 bind 未被受理（SHM 档不适用 / 未 join_game）—— 退回派生玩家" % uid)
+		return false
+	_player_uid = uid
+	var player_name := "input_stub" if _is_shm_mode() else "player"
+	_helper.register_entity_uid(player_name, _player_uid)
+	BwLog.info(TAG, "entity name: %s → 0x%X（回读 %d）" % [player_name, _player_uid, _helper.get_entity_uid(player_name)])
+	BwLog.info(TAG, "★ 场景实体 0x%X 挂 framesync.PlayerInput ⇒ 绑为本地玩家（不派生影子实体）" % uid)
+	return true
+
 func _spawn_local_player() -> void:
 	var uin := local_uin()
 	_player_uid = (UID_TYPE_UIN << UID_TYPE_SHIFT) | uin
